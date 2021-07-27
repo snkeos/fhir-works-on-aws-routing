@@ -25,6 +25,8 @@ import ExportRoute from './router/routes/exportRoute';
 import WellKnownUriRouteRoute from './router/routes/wellKnownUriRoute';
 import { FHIRStructureDefinitionRegistry } from './registry';
 import { initializeOperationRegistry } from './operationDefinitions';
+import { createMainRoute } from './router/routes/createMainRoute';
+import RouteHelper from './router/routes/routeHelper';
 
 const configVersionSupported: ConfigVersion = 1;
 
@@ -56,6 +58,7 @@ export function generateServerlessRouter(
     const configHandler: ConfigHandler = new ConfigHandler(fhirConfig, supportedGenericResources);
     const { fhirVersion, genericResource, compiledImplementationGuides } = fhirConfig.profile;
     const serverUrl: string = fhirConfig.server.url;
+    const { multiTenancyOptions } = fhirConfig;
     let hasCORSEnabled: boolean = false;
     const registry = new FHIRStructureDefinitionRegistry(compiledImplementationGuides);
     const operationRegistry = initializeOperationRegistry(configHandler);
@@ -78,7 +81,7 @@ export function generateServerlessRouter(
         mainRouter.use(cors(corsOptions));
         hasCORSEnabled = true;
     }
-
+    const mainRoute = createMainRoute(mainRouter, multiTenancyOptions);
     // Metadata
     const metadataRoute: MetadataRoute = new MetadataRoute(
         fhirVersion,
@@ -87,7 +90,7 @@ export function generateServerlessRouter(
         operationRegistry,
         hasCORSEnabled,
     );
-    mainRouter.use('/metadata', metadataRoute.router);
+    mainRoute.use('/metadata', metadataRoute.router);
 
     if (fhirConfig.auth.strategy.service === 'SMART-on-FHIR') {
         // well-known URI http://www.hl7.org/fhir/smart-app-launch/conformance/index.html#using-well-known
@@ -101,9 +104,10 @@ export function generateServerlessRouter(
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         try {
+            const path = RouteHelper.extractResourceUrl(req.method, req.path);
             const requestInformation =
-                operationRegistry.getOperation(req.method, req.path)?.requestInformation ??
-                getRequestInformation(req.method, req.path);
+                operationRegistry.getOperation(req.method, path)?.requestInformation ??
+                getRequestInformation(req.method, path);
             // Clean auth header (remove 'Bearer ')
             req.headers.authorization = cleanAuthHeader(req.headers.authorization);
             res.locals.requestContext = prepareRequestContext(req);
@@ -125,12 +129,13 @@ export function generateServerlessRouter(
             fhirConfig.profile.bulkDataAccess,
             fhirConfig.auth.authorization,
         );
-        mainRouter.use('/', exportRoute.router);
+
+        mainRoute.use('/', exportRoute.router);
     }
 
     // Operations defined by OperationDefinition resources
     operationRegistry.getAllRouters().forEach(router => {
-        mainRouter.use('/', router);
+        mainRoute.use('/', router);
     });
 
     // Special Resources
@@ -152,7 +157,7 @@ export function generateServerlessRouter(
                     resourceHandler,
                     fhirConfig.auth.authorization,
                 );
-                mainRouter.use(`/:resourceType(${resourceEntry[0]})`, route.router);
+                mainRoute.use(`/:resourceType(${resourceEntry[0]})`, route.router);
             }
         });
     }
@@ -180,7 +185,7 @@ export function generateServerlessRouter(
 
         // Set up Resource for each generic resource
         genericFhirResources.forEach(async (resourceType: string) => {
-            mainRouter.use(`/:resourceType(${resourceType})`, genericRoute.router);
+            mainRoute.use(`/:resourceType(${resourceType})`, genericRoute.router);
         });
     }
 
@@ -198,7 +203,7 @@ export function generateServerlessRouter(
             genericResource,
             fhirConfig.profile.resources,
         );
-        mainRouter.use('/', rootRoute.router);
+        mainRoute.use('/', rootRoute.router);
     }
 
     mainRouter.use(applicationErrorMapper);

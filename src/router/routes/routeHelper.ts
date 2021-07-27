@@ -6,6 +6,32 @@
 import express from 'express';
 
 export default class RouteHelper {
+    static mergeParams: boolean = false;
+
+    static extractResourceUrlFn?: any;
+
+    // Sets mergeParams flag for router creation
+    static setMergeParams(mergeParams: boolean) {
+        RouteHelper.mergeParams = mergeParams;
+    }
+
+    // Returns the router options for router creation
+    static getRouterOptions(): express.RouterOptions {
+        return { mergeParams: RouteHelper.mergeParams };
+    }
+
+    // Assigns an url modificatiion function, in order to carve out the resource url.
+    static setExtractResourceUrlFunction(fn: any) {
+        RouteHelper.extractResourceUrlFn = fn;
+    }
+
+    static extractResourceUrl(httpMethod: string, url: string): string {
+        if (RouteHelper.extractResourceUrlFn !== undefined) {
+            return RouteHelper.extractResourceUrlFn(httpMethod, url);
+        }
+        return url;
+    }
+
     // https://thecodebarbarian.com/80-20-guide-to-express-error-handling
     static wrapAsync = (fn: any) => {
         // eslint-disable-next-line func-names
