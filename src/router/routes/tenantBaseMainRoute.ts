@@ -53,10 +53,13 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
                     // '_history' is at root or url
                     return true;
                 }
-                if (urlSplit[resourceTypeIndex + 1].startsWith('_history') && urlSplit.length === 2 + resourceTypeIndex) {
+                if (
+                    urlSplit[resourceTypeIndex + 1].startsWith('_history') &&
+                    urlSplit.length === 2 + resourceTypeIndex
+                ) {
                     return true;
                 }
-                //.../resourcetype/id/history
+                // .../resourcetype/id/history
                 if (urlSplit.length === 3 + resourceTypeIndex) return true;
             }
             if (path.includes('_history/') && urlSplit.length === 4 + resourceTypeIndex) return true;
@@ -81,7 +84,7 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
     return false;
 }
 
-// The class provides a middle ware, which supports url based multi tenancy 
+// The class provides a middle ware, which supports url based multi tenancy
 export class TenantBasedMainRoute extends MainRoute {
     options: MultiTenancyOptions;
 
@@ -90,7 +93,7 @@ export class TenantBasedMainRoute extends MainRoute {
         this.options = options;
 
         RouteHelper.setExtractResourceUrlFunction((httpMethod: string, baseUrl: string) => {
-            // This function object cuts the tenant information from the base url 
+            // This function object cuts the tenant information from the base url
             // in order to provide the sub urls starting at resource type
             let path = baseUrl;
             if (path[0] === '/') {
@@ -134,10 +137,11 @@ export class TenantBasedMainRoute extends MainRoute {
                     // Check in the authorized tenants of this user with tenant the user requests
                     if (req.params.tenantId === 'DEFAULT') {
                         next();
-                    } else if ((this.options.tenantAccessTokenClaim !== undefined) && 
-                               (res.locals.userIdentity[this.options.tenantAccessTokenClaim] !== undefined)) {
-                        const tenants: string[] =
-                            res.locals.userIdentity[this.options.tenantAccessTokenClaim] ?? [];
+                    } else if (
+                        this.options.tenantAccessTokenClaim !== undefined &&
+                        res.locals.userIdentity[this.options.tenantAccessTokenClaim] !== undefined
+                    ) {
+                        const tenants: string[] = res.locals.userIdentity[this.options.tenantAccessTokenClaim] ?? [];
                         const tenant: string =
                             this.options.tenantAccessTokenClaimValuePrefix !== undefined
                                 ? this.options.tenantAccessTokenClaimValuePrefix + req.params.tenantId

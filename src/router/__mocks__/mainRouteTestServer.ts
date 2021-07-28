@@ -71,7 +71,7 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
         RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
             const { resourceType, tenantId } = req.params;
             res.status(201)
-                .json(createJSON(resourceType, tenantId, "9876"))
+                .json(createJSON(resourceType, tenantId, '9876'))
                 .send(`Ok`);
         }),
     );
@@ -95,6 +95,15 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
                 .send(`Ok`);
         }),
     );
+    itemRouter.delete(
+        '/:id',
+        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
+            const { resourceType, tenantId, id } = req.params;
+            res.status(200)
+                .json(createJSON(resourceType, tenantId, id))
+                .send(`Ok`);
+        }),
+    );
 
     itemRouter.get(
         '/',
@@ -108,7 +117,7 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
     itemRouter.get(
         '/_history',
         RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId} = req.params;
+            const { resourceType, tenantId } = req.params;
             res.status(200)
                 .json(createJSON(resourceType, tenantId, undefined))
                 .send(`Ok`);
