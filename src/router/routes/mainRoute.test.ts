@@ -258,7 +258,7 @@ describe('Routing with multi tenancy (including: tenant type url, token based te
         server = await createServer(
             {
                 enabled: true,
-                tenantTypeUrlPart: 'tenant',
+                tenantUrlPart: 'tenant',
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
@@ -392,7 +392,7 @@ describe('Routing with multi tenancy access token error case: Wrong token claim'
         server = await createServer(
             {
                 enabled: true,
-                tenantTypeUrlPart: 'tenant',
+                tenantUrlPart: 'tenant',
                 tenantAccessTokenClaim: 'foobar',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
@@ -419,7 +419,7 @@ describe('Routing with multi tenancy access token error case: Wrong claim value 
         server = await createServer(
             {
                 enabled: true,
-                tenantTypeUrlPart: 'tenant',
+                tenantUrlPart: 'tenant',
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'wrongprefix:',
             },
@@ -446,7 +446,7 @@ describe('Routing with multi tenancy access token error case: Malformed base url
         server = await createServer(
             {
                 enabled: true,
-                tenantTypeUrlPart: 'tenant',
+                tenantUrlPart: 'tenant',
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },

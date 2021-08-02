@@ -102,20 +102,20 @@ export class TenantBasedMainRoute extends MainRoute {
             const urlParts = path.split('/');
 
             // /{tenantId}/resourceType
-            if (this.options.tenantTypeUrlPart === undefined) {
+            if (this.options.tenantUrlPart === undefined) {
                 if (validateTenantBaseUrl(0, 1, httpMethod, path)) {
                     return `/${urlParts.splice(1).join('/')}`;
                 }
                 throw new InvalidResourceError('Malformed based url: Expecting /{tenantId}/resourceType/...');
-            } // /tenantTypeUrlPart/{tenantId}/resourceType
+            } // /<tenantUrlPart>/{tenantId}/resourceType
             else {
-                if (urlParts[0] === this.options.tenantTypeUrlPart) {
+                if (urlParts[0] === this.options.tenantUrlPart) {
                     if (validateTenantBaseUrl(1, 2, httpMethod, path)) {
                         return `/${urlParts.splice(2).join('/')}`;
                     }
                 }
                 throw new InvalidResourceError(
-                    `Malformed based url: Expecting /${this.options.tenantTypeUrlPart}/{tenantId}/resourceType/...`,
+                    `Malformed based url: Expecting /${this.options.tenantUrlPart}/{tenantId}/resourceType/...`,
                 );
             }
         });
@@ -124,8 +124,8 @@ export class TenantBasedMainRoute extends MainRoute {
     // Registers a resource url as part of a tenant url
     use(resourceUrl: string, childRouter: Router): MainRoute {
         let route;
-        if (this.options.tenantTypeUrlPart !== undefined) {
-            route = `/:tenantType(${this.options.tenantTypeUrlPart})/:tenantId${resourceUrl}`;
+        if (this.options.tenantUrlPart !== undefined) {
+            route = `/:tenantType(${this.options.tenantUrlPart})/:tenantId${resourceUrl}`;
         } else {
             route = `/:tenantId${resourceUrl}`;
         }
