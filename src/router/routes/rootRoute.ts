@@ -42,7 +42,7 @@ export default class RootRoute {
         genericResource?: GenericResource,
         resources?: Resources,
     ) {
-        this.router = express.Router();
+        this.router = express.Router({ mergeParams: true });
         this.operations = operations;
         this.bundleHandler = new BundleHandler(
             bundle,
@@ -64,11 +64,13 @@ export default class RootRoute {
                 '/',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     if (req.body.resourceType === 'Bundle') {
+                        const { tenantId } = req.params;
                         if (req.body.type.toLowerCase() === 'transaction') {
                             const response = await this.bundleHandler.processTransaction(
                                 req.body,
                                 res.locals.userIdentity,
                                 res.locals.requestContext,
+                                tenantId,
                             );
                             res.send(response);
                         } else if (req.body.type.toLowerCase() === 'batch') {
@@ -76,6 +78,7 @@ export default class RootRoute {
                                 req.body,
                                 res.locals.userIdentity,
                                 res.locals.requestContext,
+                                tenantId,
                             );
                             res.send(response);
                         } else {
@@ -92,10 +95,12 @@ export default class RootRoute {
                 '/',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     const searchParamQuery = req.query;
+                    const { tenantId } = req.params;
                     const response = await this.rootHandler.globalSearch(
                         searchParamQuery,
                         res.locals.userIdentity,
                         res.locals.requestContext,
+                        tenantId,
                     );
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'search-system',
