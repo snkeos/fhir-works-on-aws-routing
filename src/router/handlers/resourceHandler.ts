@@ -5,6 +5,7 @@
 
 import {
     Search,
+    SearchFilter,
     History,
     Persistence,
     Authorization,
@@ -46,23 +47,23 @@ export default class ResourceHandler implements CrudHandlerInterface {
         this.serverUrl = serverUrl;
     }
 
-    async create(resourceType: string, resource: any) {
+    async create(resourceType: string, resource: any, tenantId?: string) {
         await validateResource(this.validators, resource);
 
-        const createResponse = await this.dataService.createResource({ resourceType, resource });
+        const createResponse = await this.dataService.createResource({ resourceType, resource, tenantId });
         return createResponse.resource;
     }
 
-    async update(resourceType: string, id: string, resource: any) {
+    async update(resourceType: string, id: string, resource: any, tenantId?: string) {
         await validateResource(this.validators, resource);
 
-        const updateResponse = await this.dataService.updateResource({ resourceType, id, resource });
+        const updateResponse = await this.dataService.updateResource({ resourceType, id, resource, tenantId });
         return updateResponse.resource;
     }
 
-    async patch(resourceType: string, id: string, resource: any) {
+    async patch(resourceType: string, id: string, resource: any, tenantId?: string) {
         // TODO Add request validation around patching
-        const patchResponse = await this.dataService.patchResource({ resourceType, id, resource });
+        const patchResponse = await this.dataService.patchResource({ resourceType, id, resource, tenantId });
 
         return patchResponse.resource;
     }
@@ -72,6 +73,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         queryParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        tenantId?: string,
     ) {
         const allowedResourceTypes = await this.authService.getAllowedResourceTypesForOperation({
             operation: 'search-type',
@@ -85,6 +87,16 @@ export default class ResourceHandler implements CrudHandlerInterface {
             operation: 'search-type',
             resourceType,
         });
+
+        if (tenantId !== undefined) {
+            const tenantIdSearchFilter: SearchFilter = {
+                key: 'tenantId',
+                value: [tenantId],
+                comparisonOperator: '==',
+                logicalOperator: 'AND',
+            };
+            searchFilters.push(tenantIdSearchFilter);
+        }
 
         const searchResponse = await this.searchService.typeSearch({
             resourceType,
@@ -114,6 +126,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         queryParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        tenantId?: string,
     ) {
         const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
             userIdentity,
@@ -127,6 +140,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             queryParams,
             baseUrl: this.serverUrl,
             searchFilters,
+            tenantId,
         });
         return BundleGenerator.generateBundle(
             this.serverUrl,
@@ -143,6 +157,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         queryParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        tenantId?: string,
     ) {
         const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
             userIdentity,
@@ -158,6 +173,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             queryParams,
             baseUrl: this.serverUrl,
             searchFilters,
+            tenantId,
         });
         return BundleGenerator.generateBundle(
             this.serverUrl,
@@ -169,18 +185,18 @@ export default class ResourceHandler implements CrudHandlerInterface {
         );
     }
 
-    async read(resourceType: string, id: string) {
-        const getResponse = await this.dataService.readResource({ resourceType, id });
+    async read(resourceType: string, id: string, tenantId?: string) {
+        const getResponse = await this.dataService.readResource({ resourceType, id, tenantId });
         return getResponse.resource;
     }
 
-    async vRead(resourceType: string, id: string, vid: string) {
-        const getResponse = await this.dataService.vReadResource({ resourceType, id, vid });
+    async vRead(resourceType: string, id: string, vid: string, tenantId?: string) {
+        const getResponse = await this.dataService.vReadResource({ resourceType, id, vid, tenantId });
         return getResponse.resource;
     }
 
-    async delete(resourceType: string, id: string) {
-        await this.dataService.deleteResource({ resourceType, id });
+    async delete(resourceType: string, id: string, tenantId?: string) {
+        await this.dataService.deleteResource({ resourceType, id, tenantId });
         return OperationsGenerator.generateSuccessfulDeleteOperation();
     }
 }

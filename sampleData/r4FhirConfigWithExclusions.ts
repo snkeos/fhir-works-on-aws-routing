@@ -35,6 +35,9 @@ const config = (stubs: {
     server: {
         url: 'http://example.com',
     },
+    multiTenancyOptions: {
+        enabled: false,
+    },
     //
     // Add any profiles you want to support.  Each profile can support multiple fhirVersions
     // This 'resource*' defaults to ALL resources not called out in excludedResources or resources array

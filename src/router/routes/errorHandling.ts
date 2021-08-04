@@ -53,13 +53,33 @@ const statusToOutcome: Record<number, { severity: IssueSeverity; code: IssueCode
     500: { severity: 'error', code: 'exception' },
 };
 
+// Workaround for issue: http_errors_1.default.isHttpError is not a function
+// which only happens in deployed instances, same code and config version it runs locally in other projects
+// TODO: resolve this issue without this workaround
+function isHttpError(val: any) {
+    if (!val || typeof val !== 'object') {
+        return false;
+    }
+
+    if (val instanceof createError.HttpError) {
+        return true;
+    }
+
+    return (
+        typeof val.expose === 'boolean' &&
+        typeof val.statusCode === 'number' &&
+        val.status === val.statusCode &&
+        val instanceof Error
+    );
+}
+
 export const httpErrorHandler = (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof createError.TooManyRequests) {
         const RETRY_AGAIN_IN_SECONDS = 15 * 60; // 15 Minutes
         res.header('Retry-After', RETRY_AGAIN_IN_SECONDS.toString(10));
     }
-    if (createError.isHttpError(err)) {
-        console.error('HttpError', err);
+    // if (createError.isHttpError(err)) {
+    if (isHttpError(err)) {
         const { severity, code } = statusToOutcome[err.statusCode] ?? { severity: 'error', code: 'processing' };
         res.status(err.statusCode).send(OperationsGenerator.generateOperationOutcomeIssue(severity, code, err.message));
         return;

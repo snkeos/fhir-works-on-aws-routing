@@ -35,6 +35,9 @@ const config = (stubs: {
     server: {
         url: 'http://example.com',
     },
+    multiTenancyOptions: {
+        enabled: false,
+    },
     profile: {
         fhirVersion: '3.0.1',
         systemOperations: ['transaction'],
