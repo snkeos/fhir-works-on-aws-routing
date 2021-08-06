@@ -1,7 +1,7 @@
 import request from 'supertest';
 // eslint-disable-next-line import/no-unresolved
 import { Express } from 'express-serve-static-core';
-import { createServer, createJSON } from '../__mocks__/mainRouteTestServer';
+import { createServer, createJSON, createMetaData } from '../__mocks__/mainRouteTestServer';
 
 let server: Express;
 const resourceType: string = 'Patient';
@@ -180,7 +180,7 @@ describe('Routing with multi tenancy (including: token based tenant access contr
             });
     });
 
-    it(`Get: /${resourceType} for Default tenant should return 20.`, async done => {
+    it(`Get: /${resourceType} for Default tenant should return 200.`, async done => {
         const tenantId: string = 'DEFAULT';
         request(server)
             .get(`/${tenantId}/${resourceType}/${resourceId}`)
@@ -514,6 +514,44 @@ describe('Routing with multi tenancy access token error case: Malformed base url
                 expect(res.body.issue[0].diagnostics).toContain(
                     `Malformed based url: Expecting /{tenantId}/resourceType/...`,
                 );
+                return done();
+            });
+    });
+});
+
+// Test multi tenancy with restricting users to certain tenants, via access token
+describe('Routing with multi tenancy (including: token based tenant access control): GET /{tenantid}/metadata', () => {
+    beforeAll(async () => {
+        server = await createServer(
+            {
+                enabled: true,
+                tenantAccessTokenClaim: 'cognito:groups',
+                tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
+            },
+            'Patient',
+        );
+    });
+
+    it(`Get: /metadata for Default tenant should return 200.`, async done => {
+        const tenantId: string = 'DEFAULT';
+        request(server)
+            .get(`/${tenantId}/metadata`)
+            .expect(200)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.body).toMatchObject(createMetaData());
+                return done();
+            });
+    });
+
+    it(`Get: /metadata for Default tenant should return 200.`, async done => {
+        const tenantId: string = 'test12434';
+        request(server)
+            .get(`/${tenantId}/metadata`)
+            .expect(200)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.body).toMatchObject(createMetaData());
                 return done();
             });
     });

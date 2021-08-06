@@ -25,7 +25,7 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
 
     if (!tenantIdRegex.test(urlSplit[tenantIdIndex])) return false;
 
-    if (!resourceTypeRegex.test(urlSplit[resourceTypeIndex])) return false;
+    if (!resourceTypeRegex.test(urlSplit[resourceTypeIndex]) && urlSplit[resourceTypeIndex] != 'metadata') return false;
 
     switch (verb) {
         case 'PUT':
@@ -130,7 +130,7 @@ export class TenantBasedMainRoute extends MainRoute {
             route = `/:tenantId${resourceUrl}`;
         }
 
-        if (this.options.tenantAccessTokenClaim !== undefined) {
+        if (this.options.tenantAccessTokenClaim !== undefined && !resourceUrl.includes('/metadata')) {
             this.mainRouter.use(
                 route,
                 (req: express.Request, res: express.Response, next: express.NextFunction) => {
