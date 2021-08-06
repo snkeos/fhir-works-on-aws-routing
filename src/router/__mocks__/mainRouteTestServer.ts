@@ -46,6 +46,16 @@ export function createJSON(resourceType: string, tenantId?: string, resourceId?:
     };
 }
 
+export function createMetaData(){
+    return {
+        message: 'success',
+        resource: {
+            FHIRVersion: "R4",
+            resources: ["Patient", "Questionnaire"],
+        },
+    }
+}
+
 export async function createServer(multiTenancyOptions: MultiTenancyOptions, type: string): Promise<Express> {
     const server = express();
 
@@ -62,8 +72,18 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
     );
 
     const mainRoute = createMainRoute(mainRouter, multiTenancyOptions);
-    provideDecodedToken(mainRouter, type);
 
+    const metaDataRouter = express.Router(RouteHelper.getRouterOptions());
+
+    // READ
+    metaDataRouter.get('/', async (req: express.Request, res: express.Response) => {
+        res.send(createMetaData());
+    });
+
+    mainRoute.use('/metadata', metaDataRouter);
+
+    provideDecodedToken(mainRouter, type);
+ 
     const itemRouter = express.Router(RouteHelper.getRouterOptions());
 
     itemRouter.post(

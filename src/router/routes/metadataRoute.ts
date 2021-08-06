@@ -9,6 +9,7 @@ import MetadataHandler from '../metadata/metadataHandler';
 import ConfigHandler from '../../configHandler';
 import { FHIRStructureDefinitionRegistry } from '../../registry';
 import { OperationDefinitionRegistry } from '../../operationDefinitions/OperationDefinitionRegistry';
+import RouteHelper from './routeHelper';
 
 export default class MetadataRoute {
     readonly fhirVersion: FhirVersion;
@@ -26,7 +27,7 @@ export default class MetadataRoute {
     ) {
         this.fhirVersion = fhirVersion;
         this.metadataHandler = new MetadataHandler(fhirConfigHandler, registry, operationRegistry, hasCORSEnabled);
-        this.router = express.Router();
+        this.router = express.Router(RouteHelper.getRouterOptions());
         this.init();
     }
 
