@@ -21,11 +21,20 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
     const path = cleanUrlPath(urlPath);
     const urlSplit = path.split('/');
 
-    if (urlSplit.length <= resourceTypeIndex) return false;
+    if (urlSplit.length <= resourceTypeIndex) {
+        console.error(`Expected url length: ${urlSplit.length} is too short`);
+        return false;
+    }
 
-    if (!tenantIdRegex.test(urlSplit[tenantIdIndex])) return false;
+    if (!tenantIdRegex.test(urlSplit[tenantIdIndex])) {
+        console.error(`Malformed tenant id: ${urlSplit[tenantIdIndex]}`);
+        return false;
+    }
 
-    if (!resourceTypeRegex.test(urlSplit[resourceTypeIndex]) && urlSplit[resourceTypeIndex] != 'metadata') return false;
+    if (!resourceTypeRegex.test(urlSplit[resourceTypeIndex]) && urlSplit[resourceTypeIndex] !== 'metadata') {
+        console.error(`Malformed resource name: ${urlSplit[resourceTypeIndex]}`);
+        return false;
+    }
 
     switch (verb) {
         case 'PUT':
@@ -64,12 +73,12 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
             }
             if (path.includes('_history/') && urlSplit.length === 4 + resourceTypeIndex) return true;
 
-            // For a generic read it has to be [type]/[id]
+            // For a generic read of a specific resource it has to be /[type]/[id]
             if (urlSplit.length === 2 + resourceTypeIndex) return true;
 
-            if (path.includes('metadata') && urlSplit.length === 1 + resourceTypeIndex) {
-                return true;
-            }
+            // For a generic read of all resources it has to be /[type]
+            if (urlSplit.length === 1 + resourceTypeIndex) return true;
+
             break;
         }
 
@@ -81,6 +90,7 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
             break;
         }
     }
+    console.log(`Malformed based url: ${urlPath} for HTTP method: ${verb}`);
     return false;
 }
 
@@ -106,7 +116,9 @@ export class TenantBasedMainRoute extends MainRoute {
                 if (validateTenantBaseUrl(0, 1, httpMethod, path)) {
                     return `/${urlParts.splice(1).join('/')}`;
                 }
-                throw new InvalidResourceError('Malformed based url: Expecting /{tenantId}/resourceType/...');
+                throw new InvalidResourceError(
+                    `Malformed based url: ${baseUrl} for HTTP method: ${httpMethod}. Expecting /{tenantId}/resourceType/...`,
+                );
             } // /<tenantUrlPart>/{tenantId}/resourceType
             else {
                 if (urlParts[0] === this.options.tenantUrlPart) {
@@ -115,7 +127,7 @@ export class TenantBasedMainRoute extends MainRoute {
                     }
                 }
                 throw new InvalidResourceError(
-                    `Malformed based url: Expecting /${this.options.tenantUrlPart}/{tenantId}/resourceType/...`,
+                    `Malformed based url: ${baseUrl} for HTTP method: ${httpMethod}. Expecting /${this.options.tenantUrlPart}/{tenantId}/resourceType/...`,
                 );
             }
         });

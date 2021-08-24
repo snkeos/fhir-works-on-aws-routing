@@ -14,7 +14,7 @@ describe('Regression: Routing with out multi tenancy: POST, PUT, PATCH, DELETE,G
             {
                 enabled: false,
             },
-            'Patient',
+            resourceType,
         );
     });
 
@@ -91,7 +91,7 @@ describe('Routing with multi tenancy (basic): POST, PUT, PATCH, DELETE, GET /{te
             {
                 enabled: true,
             },
-            'Patient',
+            resourceType,
         );
     });
 
@@ -129,7 +129,7 @@ describe('Routing with multi tenancy (including: token based tenant access contr
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
-            'Patient',
+            resourceType,
         );
     });
 
@@ -179,7 +179,17 @@ describe('Routing with multi tenancy (including: token based tenant access contr
                 return done();
             });
     });
-
+    it(`Get: all /${resourceType} for DEFAULT tenant should return 200.`, async done => {
+        const tenantId: string = 'DEFAULT';
+        request(server)
+            .get(`/${tenantId}/${resourceType}`)
+            .expect(200)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.body).toMatchObject(createJSON(resourceType, tenantId, undefined));
+                return done();
+            });
+    });
     it(`Get: /${resourceType} for Default tenant should return 200.`, async done => {
         const tenantId: string = 'DEFAULT';
         request(server)
@@ -192,7 +202,19 @@ describe('Routing with multi tenancy (including: token based tenant access contr
             });
     });
 
-    it(`Get: /${resourceType} for a specified tenant should return 200.`, async done => {
+    it(`Get: all /${resourceType} for a specified tenant should return 200.`, async done => {
+        const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
+        request(server)
+            .get(`/${tenantId}/${resourceType}`)
+            .expect(200)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.body).toMatchObject(createJSON(resourceType, tenantId, undefined));
+                return done();
+            });
+    });
+
+    it(`Get: specific /${resourceType} for a specified tenant should return 200.`, async done => {
         const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
         request(server)
             .get(`/${tenantId}/${resourceType}/${resourceId}`)
@@ -262,7 +284,7 @@ describe('Routing with multi tenancy (including: tenant type url, token based te
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
-            'Patient',
+            resourceType,
         );
     });
 
@@ -313,6 +335,17 @@ describe('Routing with multi tenancy (including: tenant type url, token based te
             });
     });
 
+    it(`Get: all /${resourceType} for DEFAULT tenant should return 200.`, async done => {
+        const tenantId: string = 'DEFAULT';
+        request(server)
+            .get(`/tenant/${tenantId}/${resourceType}`)
+            .expect(200)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.body).toMatchObject(createJSON(resourceType, tenantId, undefined));
+                return done();
+            });
+    });
     it(`Get: /${resourceType} for DEFAULT tenant should return 200.`, async done => {
         const tenantId: string = 'DEFAULT';
         request(server)
@@ -324,8 +357,19 @@ describe('Routing with multi tenancy (including: tenant type url, token based te
                 return done();
             });
     });
+    it(`Get: all /${resourceType} for a specified tenant should return 200.`, async done => {
+        const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
+        request(server)
+            .get(`/tenant/${tenantId}/${resourceType}`)
+            .expect(200)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.body).toMatchObject(createJSON(resourceType, tenantId, undefined));
+                return done();
+            });
+    });
 
-    it(`Get: /${resourceType} for specified tenant should return 200.`, async done => {
+    it(`Get: specific /${resourceType} for a specified tenant should return 200.`, async done => {
         const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
         request(server)
             .get(`/tenant/${tenantId}/${resourceType}/${resourceId}`)
@@ -396,7 +440,7 @@ describe('Routing with multi tenancy access token error case: Wrong token claim'
                 tenantAccessTokenClaim: 'foobar',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
-            'Patient',
+            resourceType,
         );
     });
 
@@ -423,7 +467,7 @@ describe('Routing with multi tenancy access token error case: Wrong claim value 
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'wrongprefix:',
             },
-            'Patient',
+            resourceType,
         );
     });
 
@@ -450,7 +494,7 @@ describe('Routing with multi tenancy access token error case: Malformed base url
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
-            'Patient',
+            resourceType,
         );
     });
     it('Missing tenant type url', async done => {
@@ -461,7 +505,7 @@ describe('Routing with multi tenancy access token error case: Malformed base url
             .end((err, res) => {
                 if (err) return done(err);
                 expect(res.body.issue[0].diagnostics).toContain(
-                    `Malformed based url: Expecting /tenant/{tenantId}/resourceType/...`,
+                    `Malformed based url: /${tenantId}/${resourceType}/${resourceId} for HTTP method: GET. Expecting /tenant/{tenantId}/resourceType/...`,
                 );
                 return done();
             });
@@ -473,7 +517,7 @@ describe('Routing with multi tenancy access token error case: Malformed base url
             .end((err, res) => {
                 if (err) return done(err);
                 expect(res.body.issue[0].diagnostics).toContain(
-                    `Malformed based url: Expecting /tenant/{tenantId}/resourceType/...`,
+                    `Malformed based url: /${resourceType}/${resourceId} for HTTP method: GET. Expecting /tenant/{tenantId}/resourceType/...`,
                 );
                 return done();
             });
@@ -489,7 +533,7 @@ describe('Routing with multi tenancy access token error case: Malformed base url
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
-            'Patient',
+            resourceType,
         );
     });
     it('Missing tenant type url', async done => {
@@ -500,7 +544,7 @@ describe('Routing with multi tenancy access token error case: Malformed base url
             .end((err, res) => {
                 if (err) return done(err);
                 expect(res.body.issue[0].diagnostics).toContain(
-                    `Malformed based url: Expecting /{tenantId}/resourceType/...`,
+                    `Malformed based url: /tenant/${tenantId}/${resourceType}/${resourceId} for HTTP method: GET. Expecting /{tenantId}/resourceType/...`,
                 );
                 return done();
             });
@@ -512,7 +556,7 @@ describe('Routing with multi tenancy access token error case: Malformed base url
             .end((err, res) => {
                 if (err) return done(err);
                 expect(res.body.issue[0].diagnostics).toContain(
-                    `Malformed based url: Expecting /{tenantId}/resourceType/...`,
+                    `Malformed based url: /${resourceType}/${resourceId} for HTTP method: GET. Expecting /{tenantId}/resourceType/...`,
                 );
                 return done();
             });
@@ -528,7 +572,7 @@ describe('Routing with multi tenancy (including: token based tenant access contr
                 tenantAccessTokenClaim: 'cognito:groups',
                 tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
             },
-            'Patient',
+            resourceType,
         );
     });
 
