@@ -46,14 +46,14 @@ export function createJSON(resourceType: string, tenantId?: string, resourceId?:
     };
 }
 
-export function createMetaData(){
+export function createMetaData() {
     return {
         message: 'success',
         resource: {
-            FHIRVersion: "R4",
-            resources: ["Patient", "Questionnaire"],
+            FHIRVersion: 'R4',
+            resources: ['Patient', 'Questionnaire'],
         },
-    }
+    };
 }
 
 export async function createServer(multiTenancyOptions: MultiTenancyOptions, type: string): Promise<Express> {
@@ -83,7 +83,7 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
     mainRoute.use('/metadata', metaDataRouter);
 
     provideDecodedToken(mainRouter, type);
- 
+
     const itemRouter = express.Router(RouteHelper.getRouterOptions());
 
     itemRouter.post(
