@@ -3,6 +3,7 @@ import express from 'express';
 import { Express } from 'express-serve-static-core';
 import { MultiTenancyOptions, getRequestInformation, InvalidResourceError } from 'fhir-works-on-aws-interface';
 
+import cors, { CorsOptions } from 'cors';
 import { createMainRoute } from '../routes/createMainRoute';
 import RouteHelper from '../routes/routeHelper';
 import { applicationErrorMapper, httpErrorHandler, unknownErrorHandler } from '../routes/errorHandling';
@@ -23,13 +24,14 @@ function provideDecodedToken(mainRouter: express.Router, resourceType: string) {
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         try {
-            const path = RouteHelper.extractResourceUrl(req.method, req.path);
-            const requestInformation = getRequestInformation(req.method, path);
-            if (requestInformation.resourceType !== resourceType) {
-                throw new InvalidResourceError('The request info must contain a resource type');
+            if (req.method !== 'OPTIONS') {
+                const path = RouteHelper.extractResourceUrl(req.method, req.path);
+                const requestInformation = getRequestInformation(req.method, path);
+                if (requestInformation.resourceType !== resourceType) {
+                    throw new InvalidResourceError('The request info must contain a resource type');
+                }
+                res.locals.userIdentity = practitionerTenantsDecoded;
             }
-
-            res.locals.userIdentity = practitionerTenantsDecoded;
             next();
         } catch (e) {
             next(e);
@@ -42,6 +44,13 @@ export function createJSON(resourceType: string, tenantId?: string, resourceId?:
         tenantId: tenantId === undefined ? 'NONE' : tenantId,
         resourceType,
         resourceId: resourceId === undefined ? 'NONE' : resourceId,
+    };
+}
+export function corsDataJson(){
+    return {
+        'access-control-allow-headers':'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'access-control-allow-methods':'GET,POST,PUT,PATCH,HEAD,DELETE',
+        'access-control-allow-origin':'*',
     };
 }
 
@@ -58,6 +67,13 @@ export function createMetaData() {
 export async function createServer(multiTenancyOptions: MultiTenancyOptions, type: string): Promise<Express> {
     const server = express();
 
+    const corsOptions: CorsOptions = {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'HEAD', 'DELETE'],
+        allowedHeaders: ['Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'],
+        preflightContinue: false,
+    };
+
     // error customization, if request is invalid
     const mainRouter = express.Router();
 
@@ -69,6 +85,10 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
             limit: '6mb',
         }),
     );
+
+    if (corsOptions) {
+        mainRouter.use(cors(corsOptions));
+    }
 
     const mainRoute = createMainRoute(mainRouter, multiTenancyOptions);
 
@@ -84,17 +104,6 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
     provideDecodedToken(mainRouter, type);
 
     const itemRouter = express.Router(RouteHelper.getRouterOptions());
-
-    itemRouter.options(
-        '/',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId } = req.params;
-            res.set({ Allow: `OPTIONS, GET, PATCH, POST, PUT, DELETE` });
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, undefined))
-                .send(`Ok`);
-        }),
-    );
 
     itemRouter.post(
         '/',

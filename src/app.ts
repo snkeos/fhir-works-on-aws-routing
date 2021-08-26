@@ -109,11 +109,11 @@ export function generateServerlessRouter(
                 const requestInformation =
                     operationRegistry.getOperation(req.method, path)?.requestInformation ??
                     getRequestInformation(req.method, path);
-                    
+
                 // Clean auth header (remove 'Bearer ')
                 req.headers.authorization = cleanAuthHeader(req.headers.authorization);
                 res.locals.requestContext = prepareRequestContext(req);
-       
+
                 res.locals.userIdentity = await fhirConfig.auth.authorization.verifyAccessToken({
                     ...requestInformation,
                     requestContext: res.locals.requestContext,

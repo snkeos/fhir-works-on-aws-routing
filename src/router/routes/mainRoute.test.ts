@@ -1,7 +1,7 @@
 import request from 'supertest';
 // eslint-disable-next-line import/no-unresolved
 import { Express } from 'express-serve-static-core';
-import { createServer, createJSON, createMetaData } from '../__mocks__/mainRouteTestServer';
+import { createServer, createJSON, createMetaData, corsDataJson } from '../__mocks__/mainRouteTestServer';
 
 let server: Express;
 const resourceType: string = 'Patient';
@@ -136,10 +136,10 @@ describe('Routing with multi tenancy (including: token based tenant access contr
         const tenantId: string = 'DEFAULT';
         request(server)
             .options(`/${tenantId}/${resourceType}`)
-            .expect(200)
+            .expect(204)
             .end((err, res) => {
                 if (err) return done(err);
-                expect(res.body).toMatchObject(createJSON(resourceType, tenantId, undefined));
+                expect(res.headers).toMatchObject(corsDataJson());
                 return done();
             });
     });
@@ -302,10 +302,10 @@ describe('Routing with multi tenancy (including: tenant type url, token based te
         const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
         request(server)
             .options(`/tenant/${tenantId}/${resourceType}`)
-            .expect(200)
+            .expect(204)
             .end((err, res) => {
                 if (err) return done(err);
-                expect(res.body).toMatchObject(createJSON(resourceType, tenantId, undefined));
+                expect(res.headers).toMatchObject(corsDataJson());
                 return done();
             });
     });
