@@ -289,7 +289,7 @@ export default class GenericResourceRoute {
             );
         }
 
-        if (this.operations.includes('cors')) {
+/*        if (this.operations.includes('cors')) {
             this.router.options(
                 '/',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
@@ -298,6 +298,6 @@ export default class GenericResourceRoute {
                     res.send(`OK`);
                 }),
             );
-        }
+        }*/
     }
 }
