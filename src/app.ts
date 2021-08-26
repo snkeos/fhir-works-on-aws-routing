@@ -111,11 +111,13 @@ export function generateServerlessRouter(
             // Clean auth header (remove 'Bearer ')
             req.headers.authorization = cleanAuthHeader(req.headers.authorization);
             res.locals.requestContext = prepareRequestContext(req);
-            res.locals.userIdentity = await fhirConfig.auth.authorization.verifyAccessToken({
-                ...requestInformation,
-                requestContext: res.locals.requestContext,
-                accessToken: req.headers.authorization,
-            });
+            if (req.method !== 'OPTIONS') {
+                res.locals.userIdentity = await fhirConfig.auth.authorization.verifyAccessToken({
+                    ...requestInformation,
+                    requestContext: res.locals.requestContext,
+                    accessToken: req.headers.authorization,
+                });
+            }
             next();
         } catch (e) {
             next(e);

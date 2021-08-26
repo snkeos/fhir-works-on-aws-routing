@@ -289,12 +289,15 @@ export default class GenericResourceRoute {
             );
         }
 
-        if (this.operations.includes('cors')){
-            this.router.options('/', RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {       
-                // const response = await this.handler.delete(resourceType, id, tenantId);
-                res.set({ Allow: `OPTIONS, GET, PATCH, POST, PUT, DELETE` });
-                res.send(`OK`);
-            }),);
+        if (this.operations.includes('cors')) {
+            this.router.options(
+                '/',
+                RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
+                    // const response = await this.handler.delete(resourceType, id, tenantId);
+                    res.set({ Allow: `OPTIONS, GET, PATCH, POST, PUT, DELETE` });
+                    res.send(`OK`);
+                }),
+            );
         }
     }
 }
