@@ -1,7 +1,7 @@
 import request from 'supertest';
 // eslint-disable-next-line import/no-unresolved
 import { Express } from 'express-serve-static-core';
-import { createServer, createJSON, createMetaData } from '../__mocks__/mainRouteTestServer';
+import { createServer, createJSON, createMetaData, corsDataJson } from '../__mocks__/mainRouteTestServer';
 
 let server: Express;
 const resourceType: string = 'Patient';
@@ -132,7 +132,17 @@ describe('Routing with multi tenancy (including: token based tenant access contr
             resourceType,
         );
     });
-
+    it(`OPTIONS: /${resourceType} for Default tenant should return 200.`, async done => {
+        const tenantId: string = 'DEFAULT';
+        request(server)
+            .options(`/${tenantId}/${resourceType}`)
+            .expect(204)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.headers).toMatchObject(corsDataJson());
+                return done();
+            });
+    });
     it(`Post: /${resourceType} for Default tenant should return 201.`, async done => {
         const tenantId: string = 'DEFAULT';
         request(server)
@@ -288,6 +298,18 @@ describe('Routing with multi tenancy (including: tenant type url, token based te
         );
     });
 
+    it(`OPTIONS: /${resourceType} for specified tenant should return 200.`, async done => {
+        const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
+        request(server)
+            .options(`/tenant/${tenantId}/${resourceType}`)
+            .expect(204)
+            .end((err, res) => {
+                if (err) return done(err);
+                expect(res.headers).toMatchObject(corsDataJson());
+                return done();
+            });
+    });
+
     it(`Post: /${resourceType} for specified tenant should return 201.`, async done => {
         const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
         request(server)
@@ -299,6 +321,7 @@ describe('Routing with multi tenancy (including: tenant type url, token based te
                 return done();
             });
     });
+
     it(`Put: /${resourceType} for specified tenant should return 200.`, async done => {
         const tenantId: string = '915b76f7-8744-4010-bd31-a1e4c0d9fc64';
         request(server)

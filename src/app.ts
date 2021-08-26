@@ -104,18 +104,22 @@ export function generateServerlessRouter(
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         try {
-            const path = RouteHelper.extractResourceUrl(req.method, req.path);
-            const requestInformation =
-                operationRegistry.getOperation(req.method, path)?.requestInformation ??
-                getRequestInformation(req.method, path);
-            // Clean auth header (remove 'Bearer ')
-            req.headers.authorization = cleanAuthHeader(req.headers.authorization);
-            res.locals.requestContext = prepareRequestContext(req);
-            res.locals.userIdentity = await fhirConfig.auth.authorization.verifyAccessToken({
-                ...requestInformation,
-                requestContext: res.locals.requestContext,
-                accessToken: req.headers.authorization,
-            });
+            if (req.method !== 'OPTIONS') {
+                const path = RouteHelper.extractResourceUrl(req.method, req.path);
+                const requestInformation =
+                    operationRegistry.getOperation(req.method, path)?.requestInformation ??
+                    getRequestInformation(req.method, path);
+
+                // Clean auth header (remove 'Bearer ')
+                req.headers.authorization = cleanAuthHeader(req.headers.authorization);
+                res.locals.requestContext = prepareRequestContext(req);
+
+                res.locals.userIdentity = await fhirConfig.auth.authorization.verifyAccessToken({
+                    ...requestInformation,
+                    requestContext: res.locals.requestContext,
+                    accessToken: req.headers.authorization,
+                });
+            }
             next();
         } catch (e) {
             next(e);

@@ -86,6 +86,10 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
             if (urlSplit.length === 1 + resourceTypeIndex) return true;
             break;
         }
+        case 'OPTIONS': {
+            if (urlSplit.length >= 1 + resourceTypeIndex) return true;
+            break;
+        }
         default: {
             break;
         }
