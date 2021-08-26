@@ -24,10 +24,12 @@ function provideDecodedToken(mainRouter: express.Router, resourceType: string) {
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         try {
             const path = RouteHelper.extractResourceUrl(req.method, req.path);
-            const requestInformation = getRequestInformation(req.method, path);
+            if(req.method !== 'OPTIONS') {
+                const requestInformation = getRequestInformation(req.method, path);
 
-            if (requestInformation.resourceType !== resourceType) {
-                throw new InvalidResourceError('The request info must contain a resource type');
+                if (requestInformation.resourceType !== resourceType) {
+                    throw new InvalidResourceError('The request info must contain a resource type');
+                }
             }
 
             res.locals.userIdentity = practitionerTenantsDecoded;
@@ -85,6 +87,16 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
     provideDecodedToken(mainRouter, type);
 
     const itemRouter = express.Router(RouteHelper.getRouterOptions());
+
+    itemRouter.options(
+        '/',
+        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
+            const { resourceType, tenantId } = req.params;
+            res.status(200)
+                .json(createJSON(resourceType, tenantId, undefined))
+                .send(`Ok`);
+        }),
+    );
 
     itemRouter.post(
         '/',
