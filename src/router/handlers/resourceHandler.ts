@@ -119,6 +119,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchResponse.result,
             'searchset',
             resourceType,
+            tenantUrl,
         );
 
         return this.authService.authorizeAndFilterReadResponse({
