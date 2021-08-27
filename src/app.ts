@@ -78,7 +78,7 @@ export function generateServerlessRouter(
     );
     // Add cors handler before auth to allow pre-flight requests without auth.
     if (corsOptions) {
-        mainRouter.use(cors(corsOptions));
+        mainRouter.use(cors());
         hasCORSEnabled = true;
     }
     const mainRoute = createMainRoute(mainRouter, multiTenancyOptions);
