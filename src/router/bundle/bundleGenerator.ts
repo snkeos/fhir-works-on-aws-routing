@@ -31,7 +31,17 @@ export default class BundleGenerator {
             },
             type: bundleType,
             total: searchResult.numberOfResults, // Total number of search results, not total of results on page
-            link: [this.createLinkWithQuery('self', baseUrl, bundleType === 'history', resourceType, id, queryParams, tenantUrl)],
+            link: [
+                this.createLinkWithQuery(
+                    'self',
+                    baseUrl,
+                    bundleType === 'history',
+                    resourceType,
+                    id,
+                    queryParams,
+                    tenantUrl,
+                ),
+            ],
             entry: searchResult.entries,
         };
 

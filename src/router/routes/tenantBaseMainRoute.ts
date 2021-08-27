@@ -22,6 +22,10 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
     const urlSplit = path.split('/');
 
     if (urlSplit.length <= resourceTypeIndex) {
+        if (verb === 'POST') {
+            return true;
+        }
+
         console.error(`Expected url length: ${urlSplit.length} is too short`);
         return false;
     }

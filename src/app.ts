@@ -147,7 +147,6 @@ export function generateServerlessRouter(
         Object.entries(fhirConfig.profile.resources).forEach(async resourceEntry => {
             const { operations, persistence, typeSearch, typeHistory, fhirVersions } = resourceEntry[1];
             if (fhirVersions.includes(fhirVersion)) {
-                
                 const resourceHandler: ResourceHandler = new ResourceHandler(
                     persistence,
                     typeSearch,
@@ -155,7 +154,7 @@ export function generateServerlessRouter(
                     fhirConfig.auth.authorization,
                     serverUrl,
                     fhirConfig.validators,
-                    multiTenancyOptions.tenantUrlPart
+                    multiTenancyOptions.tenantUrlPart,
                 );
 
                 const route: GenericResourceRoute = new GenericResourceRoute(

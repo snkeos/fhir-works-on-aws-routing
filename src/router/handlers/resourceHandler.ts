@@ -92,7 +92,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             resourceType,
         });
 
-        let tenantUrl = undefined;
+        let tenantUrl;
         if (tenantId !== undefined) {
             const tenantIdSearchFilter: SearchFilter = {
                 key: 'tenantId',
@@ -102,9 +102,8 @@ export default class ResourceHandler implements CrudHandlerInterface {
             };
             searchFilters.push(tenantIdSearchFilter);
 
-            tenantUrl = this.tenantUrlPart !== undefined ? `${this.tenantUrlPart}/${tenantId}`: tenantId;
+            tenantUrl = this.tenantUrlPart !== undefined ? `${this.tenantUrlPart}/${tenantId}` : tenantId;
         }
-
 
         const searchResponse = await this.searchService.typeSearch({
             resourceType,
