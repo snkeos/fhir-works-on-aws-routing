@@ -19,6 +19,7 @@ export default class BundleGenerator {
         bundleType: 'searchset' | 'history',
         resourceType?: string,
         id?: string,
+        tenantUrl?: string,
     ) {
         const currentDateTime = new Date();
 
@@ -30,7 +31,7 @@ export default class BundleGenerator {
             },
             type: bundleType,
             total: searchResult.numberOfResults, // Total number of search results, not total of results on page
-            link: [this.createLinkWithQuery('self', baseUrl, bundleType === 'history', resourceType, id, queryParams)],
+            link: [this.createLinkWithQuery('self', baseUrl, bundleType === 'history', resourceType, id, queryParams, tenantUrl)],
             entry: searchResult.entries,
         };
 
@@ -57,8 +58,12 @@ export default class BundleGenerator {
         resourceType?: string,
         id?: string,
         query?: any,
+        tenantUrl?: string,
     ) {
         let pathname = '';
+        if (tenantUrl) {
+            pathname += `/${tenantUrl}`;
+        }
         if (resourceType) {
             pathname += `/${resourceType}`;
         }
