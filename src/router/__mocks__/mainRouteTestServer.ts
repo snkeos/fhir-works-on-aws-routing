@@ -46,11 +46,11 @@ export function createJSON(resourceType: string, tenantId?: string, resourceId?:
         resourceId: resourceId === undefined ? 'NONE' : resourceId,
     };
 }
-export function corsDataJson(){
+export function corsDataJson() {
     return {
-        'access-control-allow-headers':'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-        'access-control-allow-methods':'GET,POST,PUT,PATCH,HEAD,DELETE',
-        'access-control-allow-origin':'*',
+        'access-control-allow-headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'access-control-allow-methods': 'GET,POST,PUT,PATCH,HEAD,DELETE',
+        'access-control-allow-origin': '*',
     };
 }
 
