@@ -31,6 +31,8 @@ export default class ResourceHandler implements CrudHandlerInterface {
 
     private serverUrl: string;
 
+    private tenantUrlPart?: string;
+
     constructor(
         dataService: Persistence,
         searchService: Search,
@@ -38,6 +40,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         authService: Authorization,
         serverUrl: string,
         validators: Validator[],
+        tenantUrlPart?: string,
     ) {
         this.validators = validators;
         this.dataService = dataService;
@@ -45,6 +48,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         this.historyService = historyService;
         this.authService = authService;
         this.serverUrl = serverUrl;
+        this.tenantUrlPart = tenantUrlPart;
     }
 
     async create(resourceType: string, resource: any, tenantId?: string) {
@@ -88,6 +92,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             resourceType,
         });
 
+        let tenantUrl;
         if (tenantId !== undefined) {
             const tenantIdSearchFilter: SearchFilter = {
                 key: 'tenantId',
@@ -96,6 +101,8 @@ export default class ResourceHandler implements CrudHandlerInterface {
                 logicalOperator: 'AND',
             };
             searchFilters.push(tenantIdSearchFilter);
+
+            tenantUrl = this.tenantUrlPart !== undefined ? `${this.tenantUrlPart}/${tenantId}` : tenantId;
         }
 
         const searchResponse = await this.searchService.typeSearch({
@@ -104,6 +111,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             baseUrl: this.serverUrl,
             allowedResourceTypes,
             searchFilters,
+            tenantUrl,
         });
         const bundle = BundleGenerator.generateBundle(
             this.serverUrl,
@@ -111,6 +119,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchResponse.result,
             'searchset',
             resourceType,
+            tenantUrl,
         );
 
         return this.authService.authorizeAndFilterReadResponse({

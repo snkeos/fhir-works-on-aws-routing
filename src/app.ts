@@ -150,6 +150,7 @@ export function generateServerlessRouter(
                     fhirConfig.auth.authorization,
                     serverUrl,
                     fhirConfig.validators,
+                    multiTenancyOptions.tenantUrlPart,
                 );
 
                 const route: GenericResourceRoute = new GenericResourceRoute(
