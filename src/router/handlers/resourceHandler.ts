@@ -72,6 +72,14 @@ export default class ResourceHandler implements CrudHandlerInterface {
         return patchResponse.resource;
     }
 
+    
+    getTenantUrl(tenantId?: string)  {
+        if (tenantId === undefined) {
+            return undefined;
+        }
+        return this.tenantUrlPart !== undefined ? `${this.tenantUrlPart}/${tenantId}` : tenantId;
+    }
+
     async typeSearch(
         resourceType: string,
         queryParams: any,
@@ -92,7 +100,6 @@ export default class ResourceHandler implements CrudHandlerInterface {
             resourceType,
         });
 
-        let tenantUrl;
         if (tenantId !== undefined) {
             const tenantIdSearchFilter: SearchFilter = {
                 key: 'tenantId',
@@ -101,9 +108,8 @@ export default class ResourceHandler implements CrudHandlerInterface {
                 logicalOperator: 'AND',
             };
             searchFilters.push(tenantIdSearchFilter);
-
-            tenantUrl = this.tenantUrlPart !== undefined ? `${this.tenantUrlPart}/${tenantId}` : tenantId;
         }
+        const tenantUrl = this.getTenantUrl(tenantId);
 
         const searchResponse = await this.searchService.typeSearch({
             resourceType,
@@ -119,6 +125,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchResponse.result,
             'searchset',
             resourceType,
+            undefined,
             tenantUrl,
         );
 
@@ -151,12 +158,15 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchFilters,
             tenantId,
         });
+        const tenantUrl = this.getTenantUrl(tenantId);
         return BundleGenerator.generateBundle(
             this.serverUrl,
             queryParams,
             historyResponse.result,
             'history',
             resourceType,
+            undefined,
+            tenantUrl,
         );
     }
 
@@ -184,6 +194,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchFilters,
             tenantId,
         });
+        const tenantUrl = this.getTenantUrl(tenantId);
         return BundleGenerator.generateBundle(
             this.serverUrl,
             queryParams,
@@ -191,6 +202,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             'history',
             resourceType,
             id,
+            tenantUrl,
         );
     }
 
