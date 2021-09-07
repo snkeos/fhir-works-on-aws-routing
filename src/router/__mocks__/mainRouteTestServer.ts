@@ -3,12 +3,17 @@ import express from 'express';
 import { Express } from 'express-serve-static-core';
 import { MultiTenancyOptions, getRequestInformation, InvalidResourceError } from 'fhir-works-on-aws-interface';
 
-import { createMainRoute } from '../routes/createMainRoute';
+import { buildMainRouterDecorator } from '../routes/tenantBasedMainRouterDecorator';
 import RouteHelper from '../routes/routeHelper';
 import { applicationErrorMapper, httpErrorHandler, unknownErrorHandler } from '../routes/errorHandling';
 
-function provideDecodedToken(mainRouter: express.Router, resourceType: string) {
-    const practitionerTenantsDecoded = {
+let perRequestOverrideAccessTokenScopes: string[] = [];
+export function setPerRequestAccessTokenScopes(scopes: string[]) {
+    perRequestOverrideAccessTokenScopes = scopes;
+}
+
+function provideDecodedToken(scopes: string[]) {
+    return {
         sub: 'fake',
         name: 'not real',
         iat: 1516239022,
@@ -18,32 +23,64 @@ function provideDecodedToken(mainRouter: express.Router, resourceType: string) {
             'tenantprefix:fe470d0a-c7e9-4857-a39c-9a06f68b517b',
             'practitioner',
         ],
+        scope: scopes,
     };
+}
 
+function handleAuth(mainRouter: express.Router, resourceType: string) {
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        let path: string;
+        // RouteHelper.extractResourceUrl can throw an exception
         try {
-            const path = RouteHelper.extractResourceUrl(req.method, req.path);
-            const requestInformation = getRequestInformation(req.method, path);
-
-            if (requestInformation.resourceType !== resourceType) {
-                throw new InvalidResourceError('The request info must contain a resource type');
-            }
-
-            res.locals.userIdentity = practitionerTenantsDecoded;
-            next();
+            path = RouteHelper.extractResourceUrl(req.method, req.path);
         } catch (e) {
             next(e);
+            return;
         }
+
+        const requestInformation = getRequestInformation(req.method, path);
+        if (requestInformation.resourceType !== resourceType) {
+            next(new InvalidResourceError('The request info must contain a resource type'));
+            return;
+        }
+
+        res.locals.userIdentity = provideDecodedToken(
+            perRequestOverrideAccessTokenScopes.length !== 0
+                ? perRequestOverrideAccessTokenScopes
+                : ['openid', 'profile'],
+        );
+        perRequestOverrideAccessTokenScopes = [];
+        next();
     });
 }
 
-export function createJSON(resourceType: string, tenantId?: string, resourceId?: string) {
+let createResourceId: string = '9876';
+export function setExpectedCreateResourceId(id: string) {
+    createResourceId = id;
+}
+
+export function getExpectedCreateResourceId() {
+    return createResourceId;
+}
+export function createResponseBody(resourceType: string, tenantId?: string, resourceId?: string) {
     return {
-        tenantId: tenantId === undefined ? 'NONE' : tenantId,
+        tenantId: tenantId || 'NONE',
         resourceType,
-        resourceId: resourceId === undefined ? 'NONE' : resourceId,
+        resourceId: resourceId || 'NONE',
     };
+}
+async function sendResponseWithResourceId(req: express.Request, res: express.Response) {
+    const { resourceType, tenantId, id } = req.params;
+    res.status(200)
+        .json(createResponseBody(resourceType, tenantId, id))
+        .send(`Ok`);
+}
+async function sendResponseNoResourceId(req: express.Request, res: express.Response) {
+    const { resourceType, tenantId } = req.params;
+    res.status(200)
+        .json(createResponseBody(resourceType, tenantId, undefined))
+        .send(`Ok`);
 }
 
 export function createMetaData() {
@@ -70,8 +107,7 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
             limit: '6mb',
         }),
     );
-
-    const mainRoute = createMainRoute(mainRouter, multiTenancyOptions);
+    const mainRouterDecorator = buildMainRouterDecorator(mainRouter, multiTenancyOptions);
 
     const metaDataRouter = express.Router(RouteHelper.getRouterOptions());
 
@@ -80,9 +116,9 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
         res.send(createMetaData());
     });
 
-    mainRoute.use('/metadata', metaDataRouter);
+    mainRouterDecorator.use('/metadata', metaDataRouter);
 
-    provideDecodedToken(mainRouter, type);
+    handleAuth(mainRouter, type);
 
     const itemRouter = express.Router(RouteHelper.getRouterOptions());
 
@@ -91,89 +127,22 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
         RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
             const { resourceType, tenantId } = req.params;
             res.status(201)
-                .json(createJSON(resourceType, tenantId, '9876'))
+                .json(createResponseBody(resourceType, tenantId, createResourceId))
                 .send(`Ok`);
         }),
     );
 
-    itemRouter.put(
-        '/:id',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId, id } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, id))
-                .send(`Ok`);
-        }),
-    );
+    itemRouter.put('/:id', RouteHelper.wrapAsync(sendResponseWithResourceId));
+    itemRouter.patch('/:id', RouteHelper.wrapAsync(sendResponseWithResourceId));
+    itemRouter.delete('/:id', RouteHelper.wrapAsync(sendResponseWithResourceId));
 
-    itemRouter.patch(
-        '/:id',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId, id } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, id))
-                .send(`Ok`);
-        }),
-    );
-    itemRouter.delete(
-        '/:id',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId, id } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, id))
-                .send(`Ok`);
-        }),
-    );
+    itemRouter.get('/', RouteHelper.wrapAsync(sendResponseNoResourceId));
+    itemRouter.get('/_history', RouteHelper.wrapAsync(sendResponseNoResourceId));
+    itemRouter.get('/:id', RouteHelper.wrapAsync(sendResponseWithResourceId));
+    itemRouter.get('/:id/_history/:vid', RouteHelper.wrapAsync(sendResponseWithResourceId));
+    itemRouter.get('/:id/_history', RouteHelper.wrapAsync(sendResponseWithResourceId));
 
-    itemRouter.get(
-        '/',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, undefined))
-                .send(`Ok`);
-        }),
-    );
-    itemRouter.get(
-        '/_history',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, undefined))
-                .send(`Ok`);
-        }),
-    );
-
-    itemRouter.get(
-        '/:id',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId, id } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, id))
-                .send(`Ok`);
-        }),
-    );
-    itemRouter.get(
-        '/:id/_history/:vid',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId, id } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, id))
-                .send(`Ok`);
-        }),
-    );
-
-    itemRouter.get(
-        '/:id/_history',
-        RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-            const { resourceType, tenantId, id } = req.params;
-            res.status(200)
-                .json(createJSON(resourceType, tenantId, id))
-                .send(`Ok`);
-        }),
-    );
-
-    mainRoute.use(`/:resourceType(${type})`, itemRouter);
+    mainRouterDecorator.use(`/:resourceType(${type})`, itemRouter);
 
     mainRouter.use(applicationErrorMapper);
     mainRouter.use(httpErrorHandler);

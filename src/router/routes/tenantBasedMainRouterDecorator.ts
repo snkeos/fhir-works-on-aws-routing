@@ -6,7 +6,7 @@ import {
     InvalidResourceError,
     cleanUrlPath,
 } from 'fhir-works-on-aws-interface';
-import { MainRoute } from './mainRoute';
+import { MainRouterDecorator } from './mainRouterDecorator';
 import RouteHelper from './routeHelper';
 
 const tenantIdRegex = /^[a-zA-Z0-9\-_]{1,64}$/;
@@ -22,7 +22,8 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
     const urlSplit = path.split('/');
 
     if (urlSplit.length <= resourceTypeIndex) {
-        if (verb === 'POST') { // For Transaction Bundles
+        if (verb === 'POST') {
+            // For Transaction Bundles
             return true;
         }
 
@@ -97,9 +98,13 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
     console.log(`Malformed based url: ${urlPath} for HTTP method: ${verb}`);
     return false;
 }
+export function buildTenantUrl(tenantId?: string, tenantUrlPart?: string) {
+    if (tenantId === undefined) return undefined;
+    return tenantUrlPart !== undefined ? `${tenantUrlPart}/${tenantId}` : tenantId;
+}
 
 // The class provides a middle ware, which supports url based multi tenancy
-export class TenantBasedMainRoute extends MainRoute {
+export class TenantBasedMainRouterDecorator extends MainRouterDecorator {
     options: MultiTenancyOptions;
 
     constructor(mainRouter: express.Router, options: MultiTenancyOptions) {
@@ -138,38 +143,38 @@ export class TenantBasedMainRoute extends MainRoute {
     }
 
     // Registers a resource url as part of a tenant url
-    use(resourceUrl: string, childRouter: Router): MainRoute {
+    use(resourceUrl: string, childRouter: Router): MainRouterDecorator {
         let route;
         if (this.options.tenantUrlPart !== undefined) {
-            route = `/:tenantType(${this.options.tenantUrlPart})/:tenantId${resourceUrl}`;
+            route = `/${this.options.tenantUrlPart}/:tenantId${resourceUrl}`;
         } else {
             route = `/:tenantId${resourceUrl}`;
         }
 
-        if (this.options.tenantAccessTokenClaim !== undefined && !resourceUrl.includes('/metadata')) {
+        if (this.shallIntrospectAccessToken(resourceUrl)) {
             this.mainRouter.use(
                 route,
                 (req: express.Request, res: express.Response, next: express.NextFunction) => {
                     // Check in the authorized tenants of this user with tenant the user requests
+
+                    // The default tenant is always allowed to be accesed
                     if (req.params.tenantId === 'DEFAULT') {
                         next();
-                    } else if (
-                        this.options.tenantAccessTokenClaim !== undefined &&
-                        res.locals.userIdentity[this.options.tenantAccessTokenClaim] !== undefined
-                    ) {
-                        const tenants: string[] = res.locals.userIdentity[this.options.tenantAccessTokenClaim] ?? [];
-                        const tenant: string =
-                            this.options.tenantAccessTokenClaimValuePrefix !== undefined
-                                ? this.options.tenantAccessTokenClaimValuePrefix + req.params.tenantId
-                                : req.params.tenantId;
-                        if (tenants.includes(tenant) || req.params.tenantId === 'DEFAULT') {
-                            next();
-                        } else {
-                            throw new UnauthorizedError('Unauthorized');
-                        }
-                    } else {
-                        throw new UnauthorizedError('Unauthorized wrong token claim');
+                        return;
                     }
+                    // Check for an all tenants scope
+                    if (this.grantAccessForAllTenants(res)) {
+                        next();
+                        return;
+                    }
+                    // Check for a specific tenants scope
+                    if (this.grantAccessForSpecificTenant(res, req.params.tenantId)) {
+                        next();
+                        return;
+                    }
+                    throw new UnauthorizedError(
+                        `Unauthorized: No permission included in access token in order to access ${req.params.tenantId}`,
+                    );
                 },
                 childRouter,
             );
@@ -178,4 +183,52 @@ export class TenantBasedMainRoute extends MainRoute {
         }
         return this;
     }
+
+    // Evaluates whether the token shall be checked to grant/deny access based on tenant data.
+    private shallIntrospectAccessToken(resourceUrl: string) {
+        if (resourceUrl.includes('/metadata')) return false;
+
+        return this.options.tenantAccessTokenClaim !== undefined || this.options.tenantAccessTokenAllTenantsScope;
+    }
+
+    // Evaluates if an all tenants scope matches with the configured one.
+    private grantAccessForAllTenants(res: express.Response) {
+        if (this.options.tenantAccessTokenAllTenantsScope !== undefined) {
+            const scopes: string[] = res.locals.userIdentity.scope ?? [];
+            if (scopes.includes(this.options.tenantAccessTokenAllTenantsScope)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Evaluates if tenant id url param value is included in the token, or not.
+    private grantAccessForSpecificTenant(res: express.Response, tenantId: string) {
+        if (
+            this.options.tenantAccessTokenClaim !== undefined &&
+            res.locals.userIdentity[this.options.tenantAccessTokenClaim] !== undefined
+        ) {
+            const tenantAccessTokenClaimValues: string[] =
+                res.locals.userIdentity[this.options.tenantAccessTokenClaim] ?? [];
+            const tenantAccessTokenClaimValueToTest: string =
+                this.options.tenantAccessTokenClaimValuePrefix !== undefined
+                    ? this.options.tenantAccessTokenClaimValuePrefix + tenantId
+                    : tenantId;
+            if (tenantAccessTokenClaimValues.includes(tenantAccessTokenClaimValueToTest)) {
+                return true;
+            }
+            return false;
+        }
+        throw new UnauthorizedError(`Unauthorized wrong token claim ${this.options.tenantAccessTokenClaim}`);
+    }
+}
+export function buildMainRouterDecorator(
+    mainRouter: express.Router,
+    options: MultiTenancyOptions,
+): MainRouterDecorator {
+    if (options.enabled) {
+        return new TenantBasedMainRouterDecorator(mainRouter, options);
+    }
+
+    return new MainRouterDecorator(mainRouter);
 }

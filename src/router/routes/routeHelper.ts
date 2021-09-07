@@ -8,7 +8,9 @@ import express from 'express';
 export default class RouteHelper {
     static mergeParams: boolean = false;
 
-    static extractResourceUrlFn?: any;
+    static extractResourceUrlFn: any = (httpMethod: string, url: string): string => {
+        return url;
+    };
 
     // Sets mergeParams flag for router creation
     static setMergeParams(mergeParams: boolean) {
@@ -26,10 +28,7 @@ export default class RouteHelper {
     }
 
     static extractResourceUrl(httpMethod: string, url: string): string {
-        if (RouteHelper.extractResourceUrlFn !== undefined) {
-            return RouteHelper.extractResourceUrlFn(httpMethod, url);
-        }
-        return url;
+        return RouteHelper.extractResourceUrlFn(httpMethod, url);
     }
 
     // https://thecodebarbarian.com/80-20-guide-to-express-error-handling

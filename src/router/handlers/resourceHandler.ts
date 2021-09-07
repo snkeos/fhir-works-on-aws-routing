@@ -5,7 +5,6 @@
 
 import {
     Search,
-    SearchFilter,
     History,
     Persistence,
     Authorization,
@@ -17,6 +16,7 @@ import BundleGenerator from '../bundle/bundleGenerator';
 import CrudHandlerInterface from './CrudHandlerInterface';
 import OperationsGenerator from '../operationsGenerator';
 import { validateResource } from '../validation/validationUtilities';
+import { buildTenantUrl } from '../routes/tenantBasedMainRouterDecorator';
 
 export default class ResourceHandler implements CrudHandlerInterface {
     private validators: Validator[];
@@ -92,26 +92,13 @@ export default class ResourceHandler implements CrudHandlerInterface {
             resourceType,
         });
 
-        let tenantUrl;
-        if (tenantId !== undefined) {
-            const tenantIdSearchFilter: SearchFilter = {
-                key: 'tenantId',
-                value: [tenantId],
-                comparisonOperator: '==',
-                logicalOperator: 'AND',
-            };
-            searchFilters.push(tenantIdSearchFilter);
-
-            tenantUrl = this.tenantUrlPart !== undefined ? `${this.tenantUrlPart}/${tenantId}` : tenantId;
-        }
-
         const searchResponse = await this.searchService.typeSearch({
             resourceType,
             queryParams,
             baseUrl: this.serverUrl,
             allowedResourceTypes,
             searchFilters,
-            tenantUrl,
+            tenantId,
         });
         const bundle = BundleGenerator.generateBundle(
             this.serverUrl,
@@ -119,7 +106,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchResponse.result,
             'searchset',
             resourceType,
-            tenantUrl,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
 
         return this.authService.authorizeAndFilterReadResponse({
