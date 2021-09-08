@@ -176,6 +176,7 @@ export function generateServerlessRouter(
             fhirConfig.auth.authorization,
             serverUrl,
             fhirConfig.validators,
+            multiTenancyOptions.tenantUrlPart,
         );
 
         const genericRoute: GenericResourceRoute = new GenericResourceRoute(
@@ -203,6 +204,7 @@ export function generateServerlessRouter(
             genericFhirResources,
             genericResource,
             fhirConfig.profile.resources,
+            multiTenancyOptions.tenantUrlPart,
         );
         mainRouterDecorator.use('/', rootRoute.router);
     }
