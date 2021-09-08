@@ -25,8 +25,8 @@ import ExportRoute from './router/routes/exportRoute';
 import WellKnownUriRouteRoute from './router/routes/wellKnownUriRoute';
 import { FHIRStructureDefinitionRegistry } from './registry';
 import { initializeOperationRegistry } from './operationDefinitions';
-import { createMainRoute } from './router/routes/createMainRoute';
 import RouteHelper from './router/routes/routeHelper';
+import { buildMainRouterDecorator } from './router/routes/tenantBasedMainRouterDecorator';
 
 const configVersionSupported: ConfigVersion = 1;
 
@@ -81,7 +81,8 @@ export function generateServerlessRouter(
         mainRouter.use(cors(corsOptions));
         hasCORSEnabled = true;
     }
-    const mainRoute = createMainRoute(mainRouter, multiTenancyOptions);
+
+    const mainRouterDecorator = buildMainRouterDecorator(mainRouter, multiTenancyOptions);
     // Metadata
     const metadataRoute: MetadataRoute = new MetadataRoute(
         fhirVersion,
@@ -90,7 +91,7 @@ export function generateServerlessRouter(
         operationRegistry,
         hasCORSEnabled,
     );
-    mainRoute.use('/metadata', metadataRoute.router);
+    mainRouterDecorator.use('/metadata', metadataRoute.router);
 
     if (fhirConfig.auth.strategy.service === 'SMART-on-FHIR') {
         // well-known URI http://www.hl7.org/fhir/smart-app-launch/conformance/index.html#using-well-known
@@ -134,12 +135,12 @@ export function generateServerlessRouter(
             fhirConfig.auth.authorization,
         );
 
-        mainRoute.use('/', exportRoute.router);
+        mainRouterDecorator.use('/', exportRoute.router);
     }
 
     // Operations defined by OperationDefinition resources
     operationRegistry.getAllRouters().forEach(router => {
-        mainRoute.use('/', router);
+        mainRouterDecorator.use('/', router);
     });
 
     // Special Resources
@@ -162,7 +163,7 @@ export function generateServerlessRouter(
                     resourceHandler,
                     fhirConfig.auth.authorization,
                 );
-                mainRoute.use(`/:resourceType(${resourceEntry[0]})`, route.router);
+                mainRouterDecorator.use(`/:resourceType(${resourceEntry[0]})`, route.router);
             }
         });
     }
@@ -190,7 +191,7 @@ export function generateServerlessRouter(
 
         // Set up Resource for each generic resource
         genericFhirResources.forEach(async (resourceType: string) => {
-            mainRoute.use(`/:resourceType(${resourceType})`, genericRoute.router);
+            mainRouterDecorator.use(`/:resourceType(${resourceType})`, genericRoute.router);
         });
     }
 
@@ -208,7 +209,7 @@ export function generateServerlessRouter(
             genericResource,
             fhirConfig.profile.resources,
         );
-        mainRoute.use('/', rootRoute.router);
+        mainRouterDecorator.use('/', rootRoute.router);
     }
 
     mainRouter.use(applicationErrorMapper);

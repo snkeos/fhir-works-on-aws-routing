@@ -4,3 +4,4 @@
  */
 
 export { generateServerlessRouter } from './app';
+export { buildTenantUrl } from './router/routes/tenantBasedMainRouterDecorator';
