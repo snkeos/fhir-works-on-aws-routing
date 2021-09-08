@@ -106,6 +106,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchResponse.result,
             'searchset',
             resourceType,
+            undefined,
             buildTenantUrl(tenantId, this.tenantUrlPart),
         );
 
@@ -144,6 +145,8 @@ export default class ResourceHandler implements CrudHandlerInterface {
             historyResponse.result,
             'history',
             resourceType,
+            undefined,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
     }
 
@@ -178,6 +181,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             'history',
             resourceType,
             id,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
     }
 
