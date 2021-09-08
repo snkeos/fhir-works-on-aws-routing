@@ -5,6 +5,7 @@
 
 import {
     Search,
+    SearchFilter,
     History,
     Persistence,
     Authorization,
