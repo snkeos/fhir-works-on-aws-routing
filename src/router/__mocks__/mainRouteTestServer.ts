@@ -2,7 +2,6 @@ import express from 'express';
 // eslint-disable-next-line import/no-unresolved
 import { Express } from 'express-serve-static-core';
 import { MultiTenancyOptions, getRequestInformation, InvalidResourceError } from 'fhir-works-on-aws-interface';
-
 import { buildMainRouterDecorator } from '../routes/tenantBasedMainRouterDecorator';
 import RouteHelper from '../routes/routeHelper';
 import { applicationErrorMapper, httpErrorHandler, unknownErrorHandler } from '../routes/errorHandling';
@@ -30,6 +29,10 @@ function provideDecodedToken(scopes: string[]) {
 function handleAuth(mainRouter: express.Router, resourceType: string) {
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        if (req.method === 'OPTIONS') {  
+           next();
+          return;
+        }
         let path: string;
         // RouteHelper.extractResourceUrl can throw an exception
         try {
@@ -70,6 +73,13 @@ export function createResponseBody(resourceType: string, tenantId?: string, reso
         resourceId: resourceId || 'NONE',
     };
 }
+export function corsDataJson() {
+    return {
+        'access-control-allow-headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'access-control-allow-methods': 'GET,POST,PUT,PATCH,HEAD,DELETE',
+        'access-control-allow-origin': '*',
+    };
+}
 async function sendResponseWithResourceId(req: express.Request, res: express.Response) {
     const { resourceType, tenantId, id } = req.params;
     res.status(200)
@@ -96,6 +106,13 @@ export function createMetaData() {
 export async function createServer(multiTenancyOptions: MultiTenancyOptions, type: string): Promise<Express> {
     const server = express();
 
+  const corsOptions: CorsOptions = {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'HEAD', 'DELETE'],
+        allowedHeaders: ['Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'],
+        preflightContinue: false,
+    };
+
     // error customization, if request is invalid
     const mainRouter = express.Router();
 
@@ -107,6 +124,11 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
             limit: '6mb',
         }),
     );
+
+    if (corsOptions) {
+        mainRouter.use(cors(corsOptions));
+    }
+
     const mainRouterDecorator = buildMainRouterDecorator(mainRouter, multiTenancyOptions);
 
     const metaDataRouter = express.Router(RouteHelper.getRouterOptions());
@@ -143,7 +165,6 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
     itemRouter.get('/:id/_history', RouteHelper.wrapAsync(sendResponseWithResourceId));
 
     mainRouterDecorator.use(`/:resourceType(${type})`, itemRouter);
-
     mainRouter.use(applicationErrorMapper);
     mainRouter.use(httpErrorHandler);
     mainRouter.use(unknownErrorHandler);
