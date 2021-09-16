@@ -19,7 +19,7 @@ export default class BundleGenerator {
         bundleType: 'searchset' | 'history',
         resourceType?: string,
         id?: string,
-        tenantUrl?: string,
+        tenantUrl?: string, // <tenantUrlPart>/<tenantId> or <tenantId>
     ) {
         const currentDateTime = new Date();
 

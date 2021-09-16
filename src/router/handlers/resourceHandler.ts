@@ -17,6 +17,7 @@ import BundleGenerator from '../bundle/bundleGenerator';
 import CrudHandlerInterface from './CrudHandlerInterface';
 import OperationsGenerator from '../operationsGenerator';
 import { validateResource } from '../validation/validationUtilities';
+import { buildTenantUrl } from '../routes/tenantBasedMainRouterDecorator';
 
 export default class ResourceHandler implements CrudHandlerInterface {
     private validators: Validator[];
@@ -72,14 +73,6 @@ export default class ResourceHandler implements CrudHandlerInterface {
         return patchResponse.resource;
     }
 
-    
-    getTenantUrl(tenantId?: string)  {
-        if (tenantId === undefined) {
-            return undefined;
-        }
-        return this.tenantUrlPart !== undefined ? `${this.tenantUrlPart}/${tenantId}` : tenantId;
-    }
-
     async typeSearch(
         resourceType: string,
         queryParams: any,
@@ -100,24 +93,13 @@ export default class ResourceHandler implements CrudHandlerInterface {
             resourceType,
         });
 
-        if (tenantId !== undefined) {
-            const tenantIdSearchFilter: SearchFilter = {
-                key: 'tenantId',
-                value: [tenantId],
-                comparisonOperator: '==',
-                logicalOperator: 'AND',
-            };
-            searchFilters.push(tenantIdSearchFilter);
-        }
-        const tenantUrl = this.getTenantUrl(tenantId);
-
         const searchResponse = await this.searchService.typeSearch({
             resourceType,
             queryParams,
             baseUrl: this.serverUrl,
             allowedResourceTypes,
             searchFilters,
-            tenantUrl,
+            tenantId,
         });
         const bundle = BundleGenerator.generateBundle(
             this.serverUrl,
@@ -126,7 +108,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             'searchset',
             resourceType,
             undefined,
-            tenantUrl,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
 
         return this.authService.authorizeAndFilterReadResponse({
@@ -158,7 +140,6 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchFilters,
             tenantId,
         });
-        const tenantUrl = this.getTenantUrl(tenantId);
         return BundleGenerator.generateBundle(
             this.serverUrl,
             queryParams,
@@ -166,7 +147,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             'history',
             resourceType,
             undefined,
-            tenantUrl,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
     }
 
@@ -194,7 +175,6 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchFilters,
             tenantId,
         });
-        const tenantUrl = this.getTenantUrl(tenantId);
         return BundleGenerator.generateBundle(
             this.serverUrl,
             queryParams,
@@ -202,7 +182,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             'history',
             resourceType,
             id,
-            tenantUrl,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
     }
 

@@ -5,6 +5,7 @@
 
 import { Search, SearchFilter, History, KeyValueMap, Authorization, RequestContext } from 'fhir-works-on-aws-interface';
 import BundleGenerator from '../bundle/bundleGenerator';
+import { buildTenantUrl } from '../routes/tenantBasedMainRouterDecorator';
 
 export default class RootHandler {
     private searchService: Search;
@@ -15,11 +16,20 @@ export default class RootHandler {
 
     private serverUrl: string;
 
-    constructor(searchService: Search, historyService: History, authService: Authorization, serverUrl: string) {
+    private tenantUrlPart?: string;
+
+    constructor(
+        searchService: Search,
+        historyService: History,
+        authService: Authorization,
+        serverUrl: string,
+        tenantUrlPart?: string,
+    ) {
         this.searchService = searchService;
         this.historyService = historyService;
         this.authService = authService;
         this.serverUrl = serverUrl;
+        this.tenantUrlPart = tenantUrlPart;
     }
 
     async globalSearch(queryParams: any, userIdentity: KeyValueMap, requestContext: RequestContext, tenantId?: string) {
@@ -29,25 +39,29 @@ export default class RootHandler {
             operation: 'search-system',
         });
 
-        if (tenantId !== undefined) {
-            const tenantIdSearchFilter: SearchFilter = {
-                key: 'tenantId',
-                value: [tenantId],
-                comparisonOperator: '==',
-                logicalOperator: 'AND',
-            };
-            searchFilters.push(tenantIdSearchFilter);
-        }
-
         const searchResponse = await this.searchService.globalSearch({
             queryParams,
             baseUrl: this.serverUrl,
             searchFilters,
+            tenantId,
         });
-        return BundleGenerator.generateBundle(this.serverUrl, queryParams, searchResponse.result, 'searchset');
+        return BundleGenerator.generateBundle(
+            this.serverUrl,
+            queryParams,
+            searchResponse.result,
+            'searchset',
+            undefined,
+            undefined,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
+        );
     }
 
-    async globalHistory(queryParams: any, userIdentity: KeyValueMap, requestContext: RequestContext) {
+    async globalHistory(
+        queryParams: any,
+        userIdentity: KeyValueMap,
+        requestContext: RequestContext,
+        tenantId?: string,
+    ) {
         const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
             userIdentity,
             requestContext,
@@ -57,7 +71,16 @@ export default class RootHandler {
             queryParams,
             baseUrl: this.serverUrl,
             searchFilters,
+            tenantId,
         });
-        return BundleGenerator.generateBundle(this.serverUrl, queryParams, historyResponse.result, 'history');
+        return BundleGenerator.generateBundle(
+            this.serverUrl,
+            queryParams,
+            historyResponse.result,
+            'history',
+            undefined,
+            undefined,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
+        );
     }
 }

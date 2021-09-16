@@ -41,6 +41,7 @@ export default class RootRoute {
         supportedGenericResources: string[],
         genericResource?: GenericResource,
         resources?: Resources,
+        tenantUrlPart?: string,
     ) {
         this.router = express.Router({ mergeParams: true });
         this.operations = operations;
@@ -54,7 +55,7 @@ export default class RootRoute {
             resources,
         );
         this.authService = authService;
-        this.rootHandler = new RootHandler(search, history, authService, serverUrl);
+        this.rootHandler = new RootHandler(search, history, authService, serverUrl, tenantUrlPart);
         this.init();
     }
 
