@@ -53,6 +53,7 @@ export default class RootRoute {
             supportedGenericResources,
             genericResource,
             resources,
+            tenantUrlPart,
         );
         this.authService = authService;
         this.rootHandler = new RootHandler(search, history, authService, serverUrl, tenantUrlPart);

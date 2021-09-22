@@ -23,6 +23,7 @@ import BundleHandlerInterface from './bundleHandlerInterface';
 import BundleGenerator from './bundleGenerator';
 import BundleParser from './bundleParser';
 import { validateResource } from '../validation/validationUtilities';
+import { buildTenantUrl } from '../routes/tenantBasedMainRouterDecorator';
 
 export default class BundleHandler implements BundleHandlerInterface {
     private bundleService: Bundle;
@@ -39,6 +40,8 @@ export default class BundleHandler implements BundleHandlerInterface {
 
     private supportedGenericResources: string[];
 
+    private tenantUrlPart?: string;
+    
     constructor(
         bundleService: Bundle,
         validators: Validator[],
@@ -47,6 +50,7 @@ export default class BundleHandler implements BundleHandlerInterface {
         supportedGenericResources: string[],
         genericResource?: GenericResource,
         resources?: Resources,
+        tenantUrlPart?: string,
     ) {
         this.bundleService = bundleService;
         this.serverUrl = serverUrl;
@@ -56,6 +60,7 @@ export default class BundleHandler implements BundleHandlerInterface {
         this.resources = resources;
 
         this.validators = validators;
+        this.tenantUrlPart = tenantUrlPart;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars,prettier/prettier
@@ -192,6 +197,6 @@ export default class BundleHandler implements BundleHandlerInterface {
             bundleServiceResponse.batchReadWriteResponses[index] = entryResponse;
         });
 
-        return BundleGenerator.generateTransactionBundle(this.serverUrl, bundleServiceResponse.batchReadWriteResponses);
+        return BundleGenerator.generateTransactionBundle(this.serverUrl, bundleServiceResponse.batchReadWriteResponses, buildTenantUrl(tenantId, this.tenantUrlPart),);
     }
 }
