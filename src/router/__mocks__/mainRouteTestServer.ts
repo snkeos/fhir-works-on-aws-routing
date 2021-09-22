@@ -106,13 +106,6 @@ export function createMetaData() {
 export async function createServer(multiTenancyOptions: MultiTenancyOptions, type: string): Promise<Express> {
     const server = express();
 
-  const corsOptions: CorsOptions = {
-        origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'HEAD', 'DELETE'],
-        allowedHeaders: ['Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'],
-        preflightContinue: false,
-    };
-
     // error customization, if request is invalid
     const mainRouter = express.Router();
 
@@ -124,10 +117,6 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
             limit: '6mb',
         }),
     );
-
-    if (corsOptions) {
-        mainRouter.use(cors(corsOptions));
-    }
 
     const mainRouterDecorator = buildMainRouterDecorator(mainRouter, multiTenancyOptions);
 
