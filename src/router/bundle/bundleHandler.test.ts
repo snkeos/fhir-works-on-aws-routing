@@ -343,7 +343,7 @@ const bundleHandlerR4 = new BundleHandler(
     getSupportedGenericResources(genericResource, SUPPORTED_R4_RESOURCES, '4.0.1'),
     genericResource,
     resources,
-    'tenant'
+    'tenant',
 );
 
 const bundleHandlerSTU3 = new BundleHandler(
@@ -519,89 +519,89 @@ describe('ERROR Cases: Validation of Bundle request', () => {
 
 describe('SUCCESS Cases: Testing Bundle with CRUD entries', () => {
     const runHandleCRUDRequestsInABundleTest = async (tenantId?: string) => {
-     // Cloning
-     const bundleRequestJSON = clone(sampleBundleRequestJSON);
-     bundleRequestJSON.entry = bundleRequestJSON.entry.concat(sampleCrudEntries);
+        // Cloning
+        const bundleRequestJSON = clone(sampleBundleRequestJSON);
+        bundleRequestJSON.entry = bundleRequestJSON.entry.concat(sampleCrudEntries);
 
-     const actualResult = await bundleHandlerR4.processTransaction(
-         bundleRequestJSON,
-         practitionerDecoded,
-         dummyRequestContext,
-         tenantId,
-     );
+        const actualResult = await bundleHandlerR4.processTransaction(
+            bundleRequestJSON,
+            practitionerDecoded,
+            dummyRequestContext,
+            tenantId,
+        );
 
-     const expectedResult = {
-         resourceType: 'Bundle',
-         id: expect.stringMatching(uuidRegExp),
-         type: 'transaction-response',
-         link: [
-             {
-                 relation: 'self',
-                 url: tenantId? `https://API_URL.com/tenant/${tenantId}`:'https://API_URL.com',
-             },
-         ],
-         entry: [
-             {
-                 response: {
-                     status: '200 OK',
-                     location: 'Patient/8cafa46d-08b4-4ee4-b51b-803e20ae8126',
-                     etag: '3',
-                     lastModified: '2020-04-23T21:19:35.592Z',
-                 },
-             },
-             {
-                 response: {
-                     status: '201 Created',
-                     location: 'Patient/7c7cf4ca-4ba7-4326-b0dd-f3275b735827',
-                     etag: '1',
-                     lastModified: expect.stringMatching(utcTimeRegExp),
-                 },
-             },
-             {
-                 resource: {
-                     active: true,
-                     resourceType: 'Patient',
-                     birthDate: '1995-09-24',
-                     meta: {
-                         lastUpdated: expect.stringMatching(utcTimeRegExp),
-                         versionId: '1',
-                     },
-                     managingOrganization: {
-                         reference: 'Organization/2.16.840.1.113883.19.5',
-                         display: 'Good Health Clinic',
-                     },
-                     text: {
-                         div: '<div xmlns="http://www.w3.org/1999/xhtml"><p></p></div>',
-                         status: 'generated',
-                     },
-                     id: '47135b80-b721-430b-9d4b-1557edc64947',
-                     name: [
-                         {
-                             family: 'Langard',
-                             given: ['Abby'],
-                         },
-                     ],
-                     gender: 'female',
-                 },
-                 response: {
-                     status: '200 OK',
-                     location: 'Patient/47135b80-b721-430b-9d4b-1557edc64947',
-                     etag: '1',
-                     lastModified: expect.stringMatching(utcTimeRegExp),
-                 },
-             },
-             {
-                 response: {
-                     status: '200 OK',
-                     location: 'Patient/bce8411e-c15e-448c-95dd-69155a837405',
-                     etag: '1',
-                     lastModified: expect.stringMatching(utcTimeRegExp),
-                 },
-             },
-         ],
-     };
-     expect(actualResult).toMatchObject(expectedResult);
-    }
+        const expectedResult = {
+            resourceType: 'Bundle',
+            id: expect.stringMatching(uuidRegExp),
+            type: 'transaction-response',
+            link: [
+                {
+                    relation: 'self',
+                    url: tenantId ? `https://API_URL.com/tenant/${tenantId}` : 'https://API_URL.com',
+                },
+            ],
+            entry: [
+                {
+                    response: {
+                        status: '200 OK',
+                        location: 'Patient/8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                        etag: '3',
+                        lastModified: '2020-04-23T21:19:35.592Z',
+                    },
+                },
+                {
+                    response: {
+                        status: '201 Created',
+                        location: 'Patient/7c7cf4ca-4ba7-4326-b0dd-f3275b735827',
+                        etag: '1',
+                        lastModified: expect.stringMatching(utcTimeRegExp),
+                    },
+                },
+                {
+                    resource: {
+                        active: true,
+                        resourceType: 'Patient',
+                        birthDate: '1995-09-24',
+                        meta: {
+                            lastUpdated: expect.stringMatching(utcTimeRegExp),
+                            versionId: '1',
+                        },
+                        managingOrganization: {
+                            reference: 'Organization/2.16.840.1.113883.19.5',
+                            display: 'Good Health Clinic',
+                        },
+                        text: {
+                            div: '<div xmlns="http://www.w3.org/1999/xhtml"><p></p></div>',
+                            status: 'generated',
+                        },
+                        id: '47135b80-b721-430b-9d4b-1557edc64947',
+                        name: [
+                            {
+                                family: 'Langard',
+                                given: ['Abby'],
+                            },
+                        ],
+                        gender: 'female',
+                    },
+                    response: {
+                        status: '200 OK',
+                        location: 'Patient/47135b80-b721-430b-9d4b-1557edc64947',
+                        etag: '1',
+                        lastModified: expect.stringMatching(utcTimeRegExp),
+                    },
+                },
+                {
+                    response: {
+                        status: '200 OK',
+                        location: 'Patient/bce8411e-c15e-448c-95dd-69155a837405',
+                        etag: '1',
+                        lastModified: expect.stringMatching(utcTimeRegExp),
+                    },
+                },
+            ],
+        };
+        expect(actualResult).toMatchObject(expectedResult);
+    };
 
     test('Handle CRUD requests in a Bundle', async () => {
         await runHandleCRUDRequestsInABundleTest(undefined);
@@ -627,7 +627,7 @@ describe('SUCCESS Cases: Testing Bundle with CRUD entries', () => {
             link: [
                 {
                     relation: 'self',
-                    url: tenantId? `https://API_URL.com/tenant/${tenantId}`:'https://API_URL.com',
+                    url: tenantId ? `https://API_URL.com/tenant/${tenantId}` : 'https://API_URL.com',
                 },
             ],
             entry: [],

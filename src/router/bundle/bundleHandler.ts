@@ -41,7 +41,7 @@ export default class BundleHandler implements BundleHandlerInterface {
     private supportedGenericResources: string[];
 
     private tenantUrlPart?: string;
-    
+
     constructor(
         bundleService: Bundle,
         validators: Validator[],
@@ -130,7 +130,12 @@ export default class BundleHandler implements BundleHandlerInterface {
                 requests = await BundleParser.parseResource(
                     bundleRequestJson,
                     this.genericResource.persistence,
+                    this.genericResource.typeSearch,
+                    this.authService,
                     this.serverUrl,
+                    userIdentity,
+                    requestContext,
+                    tenantId,
                 );
             } else {
                 throw new Error('Cannot process bundle');
@@ -197,6 +202,10 @@ export default class BundleHandler implements BundleHandlerInterface {
             bundleServiceResponse.batchReadWriteResponses[index] = entryResponse;
         });
 
-        return BundleGenerator.generateTransactionBundle(this.serverUrl, bundleServiceResponse.batchReadWriteResponses, buildTenantUrl(tenantId, this.tenantUrlPart),);
+        return BundleGenerator.generateTransactionBundle(
+            this.serverUrl,
+            bundleServiceResponse.batchReadWriteResponses,
+            buildTenantUrl(tenantId, this.tenantUrlPart),
+        );
     }
 }

@@ -9,20 +9,26 @@ import flatten from 'flat';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import {
+    Authorization,
     BatchReadWriteRequest,
     Reference,
     Persistence,
     TypeOperation,
+    Search,
     SystemOperation,
     getRequestInformation,
+    KeyValueMap,
+    RequestContext,
 } from 'fhir-works-on-aws-interface';
 
+import { URLSearchParams } from 'url';
 import {
     captureFullUrlParts,
     captureIdFromUrn,
     captureResourceIdRegExp,
     captureResourceTypeRegExp,
 } from '../../regExpressions';
+// import { Search } from 'aws-sdk/clients/kendra';
 
 export default class BundleParser {
     static SELF_CONTAINED_REFERENCE = 'SELF_CONTAINED_REFERENCE';
@@ -38,26 +44,49 @@ export default class BundleParser {
     public static async parseResource(
         bundleRequestJson: any,
         dataService: Persistence,
+        searchService: Search,
+        authService: Authorization,
         serverUrl: string,
+        userIdentity: KeyValueMap,
+        requestContext: RequestContext,
+        tenantId?: string,
     ): Promise<BatchReadWriteRequest[]> {
         const requests: BatchReadWriteRequest[] = [];
-        bundleRequestJson.entry.forEach((entry: any) => {
-            const operation = this.getOperation(entry);
-            const request: BatchReadWriteRequest = {
-                operation,
-                resource: entry.resource || entry.request.url, // GET requests, only contains the URL of the resource
-                fullUrl: entry.fullUrl || '',
-                resourceType: this.getResourceType(entry, operation),
-                id: this.getResourceId(entry, operation),
-            };
+        const preProcessedResourcePromises = [];
+        for (const entry of bundleRequestJson.entry) {
+            preProcessedResourcePromises.push(
+                this.getResourceIdAndOperation(
+                    entry,
+                    this.getOperation(entry),
+                    serverUrl,
+                    searchService,
+                    authService,
+                    userIdentity,
+                    requestContext,
+                    tenantId,
+                ),
+            );
+        }
+        await Promise.all(preProcessedResourcePromises).then(preProcessedResources => {
+            for (const preProcessedResource of preProcessedResources) {
+                const operation = preProcessedResource[0];
+                const id = preProcessedResource[1];
+                const entry = preProcessedResource[2];
+                const request: BatchReadWriteRequest = {
+                    operation,
+                    resource: entry.resource || entry.request.url, // GET requests, only contains the URL of the resource
+                    fullUrl: entry.fullUrl || '',
+                    resourceType: this.getResourceType(entry, operation),
+                    id,
+                };
 
-            const references = this.getReferences(entry);
-            if (references.length > 0) {
-                request.references = references;
+                const references = this.getReferences(entry);
+                if (references.length > 0) {
+                    request.references = references;
+                }
+                requests.push(request);
             }
-            requests.push(request);
         });
-
         return this.updateReferenceRequestsIfNecessary(requests, dataService, serverUrl);
     }
 
@@ -413,6 +442,77 @@ export default class BundleParser {
         }
 
         return id;
+    }
+
+    private static async getResourceIdAndOperation(
+        entry: any,
+        operation: TypeOperation | SystemOperation,
+        serverUrl: string,
+        searchService: Search,
+        authService: Authorization,
+        userIdentity: KeyValueMap,
+        requestContext: RequestContext,
+        tenantId?: string,
+    ): Promise<[TypeOperation | SystemOperation, string, any]> {
+        let id = '';
+        if (operation === 'create') {
+            id = uuidv4();
+        } else if (operation === 'update' || operation === 'patch') {
+            const { url } = entry.request;
+            const pathElements = url.split('?');
+
+            // check for conditional update
+            if (pathElements.length === 2) {
+                const urlSearchParam = new URLSearchParams(pathElements[1]);
+
+                const resourceType = this.getResourceType(entry, operation);
+                const allowedResourceTypes = await authService.getAllowedResourceTypesForOperation({
+                    operation: 'search-type',
+                    userIdentity,
+                    requestContext,
+                });
+
+                const searchFilters = await authService.getSearchFilterBasedOnIdentity({
+                    userIdentity,
+                    requestContext,
+                    operation: 'search-type',
+                    resourceType,
+                });
+
+                const searchResponse = await searchService.typeSearch({
+                    resourceType,
+                    queryParams: urlSearchParam,
+                    baseUrl: serverUrl,
+                    allowedResourceTypes,
+                    searchFilters,
+                    tenantId,
+                });
+                if (searchResponse.result.entries.length === 1) {
+                    id = searchResponse.result.entries[0].resource.id;
+                } else {
+                    return ['create', uuidv4(), entry];
+                }
+            } else {
+                id = entry.resource.id;
+            }
+        } else if (
+            operation === 'read' ||
+            operation === 'vread' ||
+            operation === 'history-instance' ||
+            operation === 'delete'
+        ) {
+            const { url } = entry.request;
+            const match = url.match(captureResourceIdRegExp);
+            if (!match) {
+                throw new Error(`Bundle entry does not contain resourceId: ${url}`);
+            }
+            // IDs are in the form <resource-type>/id
+            // exp. Patient/abcd1234
+            // eslint-disable-next-line prefer-destructuring
+            id = match[1];
+        }
+
+        return [operation, id, entry];
     }
 
     /**

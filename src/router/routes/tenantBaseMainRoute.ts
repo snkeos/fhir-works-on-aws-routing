@@ -23,7 +23,7 @@ function validateTenantBaseUrl(tenantIdIndex: int, resourceTypeIndex: int, verb:
 
     if (urlSplit.length <= resourceTypeIndex) {
         if (verb === 'POST') {
-            return true;  // handle transaction bundles on tenant root level correctly
+            return true; // handle transaction bundles on tenant root level correctly
         }
 
         console.error(`Expected url length: ${urlSplit.length} is too short`);
