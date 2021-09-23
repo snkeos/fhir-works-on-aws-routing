@@ -78,6 +78,7 @@ export default class BundleParser {
                     fullUrl: entry.fullUrl || '',
                     resourceType: this.getResourceType(entry, operation),
                     id,
+                    tenantId,
                 };
 
                 const references = this.getReferences(entry);
