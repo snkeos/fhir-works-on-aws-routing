@@ -487,6 +487,8 @@ export default class BundleParser {
                     searchFilters,
                     tenantId,
                 });
+                console.info(`Possible conditional update: ${searchResponse.result.entries.length } entries were found for url: ${pathElements[1]}.`)
+
                 if (searchResponse.result.entries.length === 1) {
                     id = searchResponse.result.entries[0].resource.id;
                 } else {
