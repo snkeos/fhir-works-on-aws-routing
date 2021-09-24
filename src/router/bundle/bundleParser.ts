@@ -492,7 +492,10 @@ export default class BundleParser {
 
                 if (searchResponse.result.entries.length === 1) {
                     id = searchResponse.result.entries[0].resource.id;
-                } else {
+                    console.info(`Conditional update: Found ${searchResponse.result.entries[0].resource.resourceType} id: ${id}.`)
+                 } else {
+                    console.info(`Conditional update: create new resource for ${url}.`)
+
                     return ['create', uuidv4(), entry];
                 }
             } else {
@@ -517,6 +520,7 @@ export default class BundleParser {
             id = match[1];
         }
 
+        console.info(`getResourceIdAndOperation return: ${operation}, ${id}.`)
         return [operation, id, entry];
     }
 
