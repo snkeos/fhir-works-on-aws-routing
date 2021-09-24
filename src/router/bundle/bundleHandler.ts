@@ -156,7 +156,7 @@ export default class BundleHandler implements BundleHandlerInterface {
             );
         }
 
-        const bundleServiceResponse = await this.bundleService.transaction({ requests, startTime, tenantId });
+        const bundleServiceResponse = await this.bundleService.transaction({ requests, startTime });
         if (!bundleServiceResponse.success) {
             if (bundleServiceResponse.errorType === 'SYSTEM_ERROR') {
                 throw new createError.InternalServerError(bundleServiceResponse.message);
