@@ -53,11 +53,11 @@ export default class BundleParser {
     ): Promise<BatchReadWriteRequest[]> {
         const requests: BatchReadWriteRequest[] = [];
         const preProcessedResourcePromises = [];
-        for (const entry of bundleRequestJson.entry) {
+        for (const curEntry of bundleRequestJson.entry) {
             preProcessedResourcePromises.push(
                 this.getResourceIdAndOperation(
-                    entry,
-                    this.getOperation(entry),
+                    curEntry,
+                    this.getOperation(curEntry),
                     serverUrl,
                     searchService,
                     authService,
@@ -496,6 +496,8 @@ export default class BundleParser {
                     return ['create', uuidv4(), entry];
                 }
             } else {
+                console.info(`No conditional update for url: ${url}.`)
+
                 id = entry.resource.id;
             }
         } else if (
