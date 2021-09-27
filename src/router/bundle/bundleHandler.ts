@@ -19,6 +19,7 @@ import {
 import createError from 'http-errors';
 import isEmpty from 'lodash/isEmpty';
 import { MAX_BUNDLE_ENTRIES } from '../../constants';
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 import BundleHandlerInterface from './bundleHandlerInterface';
 import BundleGenerator from './bundleGenerator';
 import BundleParser from './bundleParser';
@@ -42,6 +43,8 @@ export default class BundleHandler implements BundleHandlerInterface {
 
     private tenantUrlPart?: string;
 
+    private resourceTypeSearch?: ResourceTypeSearch;
+
     constructor(
         bundleService: Bundle,
         validators: Validator[],
@@ -61,6 +64,9 @@ export default class BundleHandler implements BundleHandlerInterface {
 
         this.validators = validators;
         this.tenantUrlPart = tenantUrlPart;
+        if (this.genericResource) {
+            this.resourceTypeSearch = new ResourceTypeSearch(authService, this.genericResource.typeSearch, serverUrl);
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars,prettier/prettier
@@ -126,12 +132,11 @@ export default class BundleHandler implements BundleHandlerInterface {
                 message = message.substring(0, message.length - 1);
                 throw new Error(`Server does not support these resource and operations: {${message}}`);
             }
-            if (this.genericResource) {
+            if (this.genericResource && this.resourceTypeSearch) {
                 requests = await BundleParser.parseResource(
                     bundleRequestJson,
                     this.genericResource.persistence,
-                    this.genericResource.typeSearch,
-                    this.authService,
+                    this.resourceTypeSearch,
                     this.serverUrl,
                     userIdentity,
                     requestContext,

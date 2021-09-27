@@ -10,6 +10,7 @@ import AuthorizationService from '../__mocks__/authorizationService';
 import ElasticSearchService from '../__mocks__/elasticSearchService';
 import BundleParser from './bundleParser';
 import { resourceTypeWithUuidRegExp, uuidRegExp } from '../../regExpressions';
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 
 const practitionerDecoded = {
     sub: 'fake',
@@ -25,6 +26,7 @@ const dummyRequestContext: RequestContext = {
     hostname: 'fhir.acme.com',
     verb: 'GET',
 };
+const resourceTypeSearch = new ResourceTypeSearch(AuthorizationService, ElasticSearchService, 'https://API_URL.com');
 describe('parseResource', () => {
     const serverUrl = 'https://API_URL.com';
     beforeEach(() => {
@@ -65,8 +67,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -99,8 +100,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -132,8 +132,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -164,8 +163,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -196,8 +194,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -228,8 +225,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -260,8 +256,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -292,8 +287,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -499,8 +493,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -854,8 +847,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -935,8 +927,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1050,8 +1041,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1102,8 +1092,7 @@ describe('parseResource', () => {
             const batchReadWriteRequest = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1141,6 +1130,7 @@ describe('parseResource', () => {
                     },
                   },
                   "resourceType": "Observation",
+                  "tenantId": undefined,
                 }
             `,
             );
@@ -1186,8 +1176,7 @@ describe('parseResource', () => {
             const batchReadWriteRequest = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1225,6 +1214,7 @@ describe('parseResource', () => {
                     },
                   },
                   "resourceType": "Observation",
+                  "tenantId": undefined,
                 }
             `,
             );
@@ -1337,8 +1327,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1385,8 +1374,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -1459,8 +1447,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1558,8 +1545,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -1631,8 +1617,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1746,8 +1731,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,
@@ -1834,8 +1818,7 @@ describe('parseResource', () => {
                 await BundleParser.parseResource(
                     bundleRequestJson,
                     DynamoDbDataService,
-                    ElasticSearchService,
-                    AuthorizationService,
+                    resourceTypeSearch,
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
@@ -1889,8 +1872,7 @@ describe('parseResource', () => {
             const actualRequests = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
-                ElasticSearchService,
-                AuthorizationService,
+                resourceTypeSearch,
                 serverUrl,
                 practitionerDecoded,
                 dummyRequestContext,

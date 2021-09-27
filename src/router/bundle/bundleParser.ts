@@ -9,19 +9,18 @@ import flatten from 'flat';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import {
-    Authorization,
     BatchReadWriteRequest,
     Reference,
     Persistence,
     TypeOperation,
-    Search,
     SystemOperation,
     getRequestInformation,
     KeyValueMap,
     RequestContext,
 } from 'fhir-works-on-aws-interface';
-
 import { URLSearchParams } from 'url';
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
+
 import {
     captureFullUrlParts,
     captureIdFromUrn,
@@ -44,8 +43,7 @@ export default class BundleParser {
     public static async parseResource(
         bundleRequestJson: any,
         dataService: Persistence,
-        searchService: Search,
-        authService: Authorization,
+        resourceTypeSearch: ResourceTypeSearch,
         serverUrl: string,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
@@ -58,9 +56,7 @@ export default class BundleParser {
                 this.getResourceIdAndOperation(
                     curEntry,
                     this.getOperation(curEntry),
-                    serverUrl,
-                    searchService,
-                    authService,
+                    resourceTypeSearch,
                     userIdentity,
                     requestContext,
                     tenantId,
@@ -445,12 +441,19 @@ export default class BundleParser {
         return id;
     }
 
+    /**
+     * Get the resource id specified in the entry
+     * @param entry - Entry to parse
+     * @param operation - Operation specified in the entry
+     * @param resourceTypeSearch - The search helper object for conditional update
+     * @param userIdentity - auth information
+     * @param requestContext - additional request infos
+     * @param tenantId - Operation specified in the entry
+     */
     private static async getResourceIdAndOperation(
         entry: any,
         operation: TypeOperation | SystemOperation,
-        serverUrl: string,
-        searchService: Search,
-        authService: Authorization,
+        resourceTypeSearch: ResourceTypeSearch,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
         tenantId?: string,
@@ -465,42 +468,23 @@ export default class BundleParser {
             // check for conditional update
             if (pathElements.length === 2) {
                 const urlSearchParam = new URLSearchParams(pathElements[1]);
-
                 const resourceType = this.getResourceType(entry, operation);
-                const allowedResourceTypes = await authService.getAllowedResourceTypesForOperation({
-                    operation: 'search-type',
+                const searchResults = await resourceTypeSearch.searchResources(
+                    resourceType,
+                    urlSearchParam,
                     userIdentity,
                     requestContext,
-                });
-
-                const searchFilters = await authService.getSearchFilterBasedOnIdentity({
-                    userIdentity,
-                    requestContext,
-                    operation: 'search-type',
-                    resourceType,
-                });
-
-                const searchResponse = await searchService.typeSearch({
-                    resourceType,
-                    queryParams: urlSearchParam,
-                    baseUrl: serverUrl,
-                    allowedResourceTypes,
-                    searchFilters,
                     tenantId,
-                });
-                console.info(`Possible conditional update: ${searchResponse.result.entries.length } entries were found for url: ${pathElements[1]}.`)
-
-                if (searchResponse.result.entries.length === 1) {
-                    id = searchResponse.result.entries[0].resource.id;
-                    console.info(`Conditional update: Found ${searchResponse.result.entries[0].resource.resourceType} id: ${id}.`)
-                 } else {
-                    console.info(`Conditional update: create new resource for ${url}.`)
-
+                );
+                if (searchResults.entries.length === 0) {
                     return ['create', uuidv4(), entry];
                 }
+                if (searchResults.entries.length === 1) {
+                    id = searchResults.entries[0].resource.id;
+                } else {
+                    throw new Error(`Cannot process bundle: Conditional update: Too many resources found for ${url}.`);
+                }
             } else {
-                console.info(`No conditional update for url: ${url}.`)
-
                 id = entry.resource.id;
             }
         } else if (
@@ -519,11 +503,8 @@ export default class BundleParser {
             // eslint-disable-next-line prefer-destructuring
             id = match[1];
         }
-
-        console.info(`getResourceIdAndOperation return: ${operation}, ${id}.`)
         return [operation, id, entry];
     }
-
     /**
      * Get the resource type specified in the entry
      * @param entry - Entry to parse
