@@ -80,15 +80,9 @@ export default class ResourceHandler implements CrudHandlerInterface {
         requestContext: RequestContext,
         tenantId?: string,
     ) {
-        let urlSearchParam = new URLSearchParams(queryParams);
- 
-        urlSearchParam.forEach(function(value, key) {
-         
-            console.log(`Search params: key:${key}, value: ${value}`);
-        });
         const searchResponse = await this.searchService.searchResources(
             resourceType,
-            urlSearchParam,
+            queryParams,
             userIdentity,
             requestContext,
             tenantId,

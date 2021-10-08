@@ -28,6 +28,7 @@ import {
     captureResourceTypeRegExp,
 } from '../../regExpressions';
 import { forEach } from 'lodash';
+import querystring from 'querystring';
 // import { Search } from 'aws-sdk/clients/kendra';
 
 export default class BundleParser {
@@ -469,18 +470,12 @@ export default class BundleParser {
             // check for conditional update
             if (pathElements.length === 2) {
                 console.log(`Cond update: SearchParam: ${pathElements[1]}`)
-                const urlSearchParam = new URLSearchParams(pathElements[1]);
-                // Log the values
-                let urlSearchParam2 = new URLSearchParams();
- 
-                urlSearchParam.forEach(function(value, key) {
-                    urlSearchParam2.set(key, `\"${value}\"`)
-                    console.log(`Cond update: key:${key}, value: ${value}`);
-                });
+                const parsedQs = querystring.parse(pathElements[1]);
+
                 const resourceType = this.getResourceType(entry, operation);
                 const searchResults = await resourceTypeSearch.searchResources(
                     resourceType,
-                    urlSearchParam2,
+                    parsedQs,
                     userIdentity,
                     requestContext,
                     tenantId,
