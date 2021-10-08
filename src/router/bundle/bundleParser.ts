@@ -467,6 +467,7 @@ export default class BundleParser {
 
             // check for conditional update
             if (pathElements.length === 2) {
+                console.log(`Cond update: SearchParam: ${pathElements[1]}`)
                 const urlSearchParam = new URLSearchParams(pathElements[1]);
                 const resourceType = this.getResourceType(entry, operation);
                 const searchResults = await resourceTypeSearch.searchResources(
@@ -476,10 +477,13 @@ export default class BundleParser {
                     requestContext,
                     tenantId,
                 );
+
+                console.log(`Cond update: Search Results: ${searchResults.entries.length}`)
                 if (searchResults.entries.length === 0) {
                     return ['create', uuidv4(), entry];
                 }
                 if (searchResults.entries.length === 1) {
+                    console.log(`Cond update: Resource id: ${ searchResults.entries[0].resource.id}`)
                     id = searchResults.entries[0].resource.id;
                 } else {
                     throw new Error(`Cannot process bundle: Conditional update: Too many resources found for ${url}.`);
