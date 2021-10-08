@@ -471,13 +471,16 @@ export default class BundleParser {
                 console.log(`Cond update: SearchParam: ${pathElements[1]}`)
                 const urlSearchParam = new URLSearchParams(pathElements[1]);
                 // Log the values
+                let urlSearchParam2 = new URLSearchParams();
+ 
                 urlSearchParam.forEach(function(value, key) {
+                    urlSearchParam2.set(key, `\"${value}\"`)
                     console.log(`Cond update: key:${key}, value: ${value}`);
                 });
                 const resourceType = this.getResourceType(entry, operation);
                 const searchResults = await resourceTypeSearch.searchResources(
                     resourceType,
-                    urlSearchParam,
+                    urlSearchParam2,
                     userIdentity,
                     requestContext,
                     tenantId,
