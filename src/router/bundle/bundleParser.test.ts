@@ -300,6 +300,268 @@ describe('parseResource', () => {
         });
     });
 
+    describe('Conditional update support', () => {
+
+        const conditionalUpdatebundleRequestJson = {
+            resourceType: 'Bundle',
+            type: 'transaction',
+            entry: [
+                {
+                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                    resource: {
+                        id: '8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                        resourceType: 'Patient',
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    request: {
+                        method: 'PUT',
+                        url:
+                            'Patient?identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family:exact=Simpson&given:exact=Lisa',
+                    },
+                },
+            ],
+        };
+
+        test('Conditional Update: A patient is not available -> create', async () => {
+            // BUILD
+            const consoleOutput: string[] = [];
+            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
+            console.log = mockedLog;
+
+
+            const expectedRequests: BatchReadWriteRequest[] = [
+                {
+                    operation: 'create',
+                    resource: {
+                        id: expect.stringMatching(uuidRegExp),
+                        resourceType: 'Patient',
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                    resourceType: 'Patient',
+                    id: expect.stringMatching(uuidRegExp),
+                },
+            ];
+
+            // OPERATE
+            const actualRequests = await BundleParser.parseResource(
+                conditionalUpdatebundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
+
+            // CHECK
+            expect(actualRequests).toEqual(expectedRequests);
+        });
+
+        test('Conditional Update: A patient is available -> update', async () => {
+            // BUILD
+            const consoleOutput: string[] = [];
+            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
+            console.log = mockedLog;
+            ElasticSearchService.setExpectedSearchSet([
+                {
+                    fullUrl: 'http://localhost:4080/Patient/cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                    resource: {
+                        resourceType: 'Patient',
+                        id: 'cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                        meta: {
+                            versionId: 'dfcc8fb7-ceae-44d2-8a3b-70903f3b89bc',
+                            lastUpdated: '2021-08-18T12:49:12.757+00:00',
+                            source: '#qLEZvGrdkonQ2ihA',
+                        },
+                        text: {
+                            status: 'generated',
+                            div: '',
+                        },
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                use: 'official',
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                                prefix: ['Ms.'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    search: {
+                        mode: 'match',
+                    },
+                },
+            ]);
+            const expectedRequests: BatchReadWriteRequest[] = [
+                {
+                    operation: 'update',
+                    resource: {
+                        id: expect.stringMatching(uuidRegExp),
+                        resourceType: 'Patient',
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                    resourceType: 'Patient',
+                    id: expect.stringMatching(uuidRegExp),
+                },
+            ];
+
+            // OPERATE
+            const actualRequests = await BundleParser.parseResource(
+                conditionalUpdatebundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
+
+            // CHECK
+            expect(actualRequests).toEqual(expectedRequests);
+        });
+
+        test('Conditional Update: Multiple patients are available -> error', async () => {
+            // BUILD
+            const consoleOutput: string[] = [];
+            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
+            console.log = mockedLog;
+            ElasticSearchService.setExpectedSearchSet([
+                {
+                    fullUrl: 'http://localhost:4080/Patient/cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                    resource: {
+                        resourceType: 'Patient',
+                        id: 'cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                        meta: {
+                            versionId: 'dfcc8fb7-ceae-44d2-8a3b-70903f3b89bc',
+                            lastUpdated: '2021-08-18T12:49:12.757+00:00',
+                            source: '#qLEZvGrdkonQ2ihA',
+                        },
+                        text: {
+                            status: 'generated',
+                            div: '',
+                        },
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                use: 'official',
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                                prefix: ['Ms.'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    search: {
+                        mode: 'match',
+                    },
+                },
+                {
+                    fullUrl: 'http://localhost:4080/Patient/12456adefd-22224ddad-3224ab3fd',
+                    resource: {
+                        resourceType: 'Patient',
+                        id: '12456adefd-22224ddad-3224ab3fd',
+                        meta: {
+                            versionId: 'dfcc8fb7-ceae-44d2-8a3b-70903f3b89bc',
+                            lastUpdated: '2021-08-18T12:49:12.757+00:00',
+                            source: '#qLEZvGrdkonQ2ihA',
+                        },
+                        text: {
+                            status: 'generated',
+                            div: '',
+                        },
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                use: 'official',
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                                prefix: ['Ms.'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    search: {
+                        mode: 'match',
+                    },
+                },
+            ]);
+
+            try{
+                // OPERATE
+                const actualRequests = await BundleParser.parseResource(
+                    conditionalUpdatebundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );            
+            } catch (e) {
+                // CHECK
+                expect(e.name).toEqual('Error');
+                expect(e.message).toContain('Cannot process bundle: Conditional update: Too many resources found for');
+            }
+        });
+    });
+
     describe('parses Bundle request with references correctly', () => {
         test('Internal references to patient being created and updated. Reference to preexisting patient on server. Reference to patients on external server. Reference chain: Observation refers to another observation which then refers to a patient', async () => {
             // BUILD
@@ -840,200 +1102,6 @@ describe('parseResource', () => {
                     },
                     resourceType: 'Patient',
                     operation: 'create',
-                },
-            ];
-
-            // OPERATE
-            const actualRequests = await BundleParser.parseResource(
-                bundleRequestJson,
-                DynamoDbDataService,
-                resourceTypeSearch,
-                serverUrl,
-                practitionerDecoded,
-                dummyRequestContext,
-            );
-
-            // CHECK
-            expect(actualRequests).toEqual(expectedRequests);
-        });
-
-        test('Conditional Update: A patient is not available -> create', async () => {
-            // BUILD
-            const consoleOutput: string[] = [];
-            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
-            console.log = mockedLog;
-
-            const bundleRequestJson = {
-                resourceType: 'Bundle',
-                type: 'transaction',
-                entry: [
-                    {
-                        fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
-                        resource: {
-                            id: '8cafa46d-08b4-4ee4-b51b-803e20ae8126',
-                            resourceType: 'Patient',
-                            identifier: [
-                                {
-                                    system: 'https://github.com/synthetichealth/synthea',
-                                    value: 'e531c09f-6887-6aba-af17-cbc521900b87',
-                                },
-                            ],
-                            name: [
-                                {
-                                    family: 'Simpson',
-                                    given: ['Lisa'],
-                                },
-                            ],
-                            gender: 'female',
-                            birthDate: '1992-08-02',
-                        },
-                        request: {
-                            method: 'PUT',
-                            url:
-                                'Patient?identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family:exact=Simpson&given:exact=Lisa',
-                        },
-                    },
-                ],
-            };
-
-            const expectedRequests: BatchReadWriteRequest[] = [
-                {
-                    operation: 'create',
-                    resource: {
-                        id: expect.stringMatching(uuidRegExp),
-                        resourceType: 'Patient',
-                        identifier: [
-                            {
-                                system: 'https://github.com/synthetichealth/synthea',
-                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
-                            },
-                        ],
-                        name: [
-                            {
-                                family: 'Simpson',
-                                given: ['Lisa'],
-                            },
-                        ],
-                        gender: 'female',
-                        birthDate: '1992-08-02',
-                    },
-                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
-                    resourceType: 'Patient',
-                    id: expect.stringMatching(uuidRegExp),
-                },
-            ];
-
-            // OPERATE
-            const actualRequests = await BundleParser.parseResource(
-                bundleRequestJson,
-                DynamoDbDataService,
-                resourceTypeSearch,
-                serverUrl,
-                practitionerDecoded,
-                dummyRequestContext,
-            );
-
-            // CHECK
-            expect(actualRequests).toEqual(expectedRequests);
-        });
-
-        test('Conditional Update: A patient is available -> update', async () => {
-            // BUILD
-            const consoleOutput: string[] = [];
-            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
-            console.log = mockedLog;
-            ElasticSearchService.setExpectedSearchSet([
-                {
-                    fullUrl: 'http://localhost:4080/Patient/cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
-                    resource: {
-                        resourceType: 'Patient',
-                        id: 'cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
-                        meta: {
-                            versionId: 'dfcc8fb7-ceae-44d2-8a3b-70903f3b89bc',
-                            lastUpdated: '2021-08-18T12:49:12.757+00:00',
-                            source: '#qLEZvGrdkonQ2ihA',
-                        },
-                        text: {
-                            status: 'generated',
-                            div: '',
-                        },
-                        identifier: [
-                            {
-                                system: 'https://github.com/synthetichealth/synthea',
-                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
-                            },
-                        ],
-                        name: [
-                            {
-                                use: 'official',
-                                family: 'Simpson',
-                                given: ['Lisa'],
-                                prefix: ['Ms.'],
-                            },
-                        ],
-                        gender: 'female',
-                        birthDate: '1992-08-02',
-                    },
-                    search: {
-                        mode: 'match',
-                    },
-                },
-            ]);
-            const bundleRequestJson = {
-                resourceType: 'Bundle',
-                type: 'transaction',
-                entry: [
-                    {
-                        fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
-                        resource: {
-                            id: '8cafa46d-08b4-4ee4-b51b-803e20ae8126',
-                            resourceType: 'Patient',
-                            identifier: [
-                                {
-                                    system: 'https://github.com/synthetichealth/synthea',
-                                    value: 'e531c09f-6887-6aba-af17-cbc521900b87',
-                                },
-                            ],
-                            name: [
-                                {
-                                    family: 'Simpson',
-                                    given: ['Lisa'],
-                                },
-                            ],
-                            gender: 'female',
-                        },
-                        request: {
-                            method: 'PUT',
-                            url:
-                                'Patient?identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family:exact=Simpson&given:exact=Lisa',
-                        },
-                    },
-                ],
-            };
-
-            const expectedRequests: BatchReadWriteRequest[] = [
-                {
-                    operation: 'update',
-                    resource: {
-                        id: expect.stringMatching(uuidRegExp),
-                        resourceType: 'Patient',
-                        identifier: [
-                            {
-                                system: 'https://github.com/synthetichealth/synthea',
-                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
-                            },
-                        ],
-                        name: [
-                            {
-                                family: 'Simpson',
-                                given: ['Lisa'],
-                            },
-                        ],
-                        gender: 'female',
-                    },
-                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
-                    resourceType: 'Patient',
-                    id: expect.stringMatching(uuidRegExp),
                 },
             ];
 
