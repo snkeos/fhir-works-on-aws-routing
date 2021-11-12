@@ -161,12 +161,12 @@ export class TenantBasedMainRoute extends MainRoute {
                         this.options.tenantAccessTokenClaim !== undefined &&
                         res.locals.userIdentity[this.options.tenantAccessTokenClaim] !== undefined
                     ) {
-                        const tenants: string[] = res.locals.userIdentity[this.options.tenantAccessTokenClaim] ?? [];
-                        const tenant: string =
+                        const tenantIdsIncPrefix: string[] = res.locals.userIdentity[this.options.tenantAccessTokenClaim] ?? [];
+                        const tenantIdIncPrefixToCheck: string =
                             this.options.tenantAccessTokenClaimValuePrefix !== undefined
                                 ? this.options.tenantAccessTokenClaimValuePrefix + req.params.tenantId
                                 : req.params.tenantId;
-                        if (tenants.includes(tenant) || req.params.tenantId === 'DEFAULT') {
+                        if (tenantIdsIncPrefix.includes(tenantIdIncPrefixToCheck) || req.params.tenantId === 'DEFAULT') {
                             next();
                         } else {
                             throw new UnauthorizedError(`Unauthorized: No permission to access data belonging to tenant: ${req.params.tenantId}.`);
