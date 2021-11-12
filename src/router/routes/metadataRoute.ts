@@ -27,7 +27,7 @@ export default class MetadataRoute {
     ) {
         this.fhirVersion = fhirVersion;
         this.metadataHandler = new MetadataHandler(fhirConfigHandler, registry, operationRegistry, hasCORSEnabled);
-        this.router = express.Router(RouteHelper.getRouterOptions());
+        this.router = express.Router({ mergeParams: true });
         this.init();
     }
 

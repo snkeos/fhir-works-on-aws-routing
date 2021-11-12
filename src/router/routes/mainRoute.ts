@@ -6,7 +6,6 @@ export class MainRoute {
 
     constructor(mainRouter: express.Router) {
         this.mainRouter = mainRouter;
-        RouteHelper.setMergeParams(true);
     }
 
     use(forwardedUrl: string, childRouter: Router): MainRoute {

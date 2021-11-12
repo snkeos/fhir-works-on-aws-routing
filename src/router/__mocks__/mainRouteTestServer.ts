@@ -120,7 +120,7 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
 
     const mainRouterDecorator = buildMainRouterDecorator(mainRouter, multiTenancyOptions);
 
-    const metaDataRouter = express.Router(RouteHelper.getRouterOptions());
+    const metaDataRouter = express.Router({ mergeParams: true });
 
     // READ
     metaDataRouter.get('/', async (req: express.Request, res: express.Response) => {
@@ -131,7 +131,7 @@ export async function createServer(multiTenancyOptions: MultiTenancyOptions, typ
 
     handleAuth(mainRouter, type);
 
-    const itemRouter = express.Router(RouteHelper.getRouterOptions());
+    const itemRouter = express.Router({ mergeParams: true });
 
     itemRouter.post(
         '/',

@@ -12,16 +12,6 @@ export default class RouteHelper {
         return url;
     };
 
-    // Sets mergeParams flag for router creation
-    static setMergeParams(mergeParams: boolean) {
-        RouteHelper.mergeParams = mergeParams;
-    }
-
-    // Returns the router options for router creation
-    static getRouterOptions(): express.RouterOptions {
-        return { mergeParams: RouteHelper.mergeParams };
-    }
-
     // Assigns an url modificatiion function, in order to carve out the resource url.
     static setExtractResourceUrlFunction(fn: any) {
         RouteHelper.extractResourceUrlFn = fn;

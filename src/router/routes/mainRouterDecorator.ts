@@ -6,7 +6,6 @@ export class MainRouterDecorator {
 
     constructor(mainRouter: express.Router) {
         this.mainRouter = mainRouter;
-        RouteHelper.setMergeParams(true);
     }
 
     use(forwardedUrl: string, childRouter: Router): MainRouterDecorator {
