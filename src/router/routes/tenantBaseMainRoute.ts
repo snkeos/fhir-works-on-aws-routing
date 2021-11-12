@@ -169,10 +169,10 @@ export class TenantBasedMainRoute extends MainRoute {
                         if (tenants.includes(tenant) || req.params.tenantId === 'DEFAULT') {
                             next();
                         } else {
-                            throw new UnauthorizedError('Unauthorized');
+                            throw new UnauthorizedError(`Unauthorized: No permission to access data belonging to tenant: ${req.params.tenantId}.`);
                         }
                     } else {
-                        throw new UnauthorizedError('Unauthorized wrong token claim');
+                        throw new UnauthorizedError('Unauthorized: Wrong or no claim in access token specified.');
                     }
                 },
                 childRouter,
