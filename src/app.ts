@@ -3,6 +3,13 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
+const AWSXRay = require('aws-xray-sdk');
+
+// noinspection JSCheckFunctionSignatures
+AWSXRay.captureHTTPsGlobal(require('http'));
+// noinspection JSCheckFunctionSignatures
+AWSXRay.captureHTTPsGlobal(require('https'));
+
 import express, { Express } from 'express';
 import cors, { CorsOptions } from 'cors';
 import {
@@ -29,6 +36,7 @@ import RouteHelper from './router/routes/routeHelper';
 import { buildMainRouterDecorator } from './router/routes/tenantBasedMainRouterDecorator';
 
 const configVersionSupported: ConfigVersion = 1;
+const XRayExpress = AWSXRay.express;
 
 function prepareRequestContext(req: express.Request): RequestContext {
     const requestContext: RequestContext = {
@@ -65,7 +73,7 @@ export function generateServerlessRouter(
 
     const app = express();
     app.disable('x-powered-by');
-
+    app.use(XRayExpress.openSegment('AWS FHIRServer Server API'));
     const mainRouter = express.Router();
 
     mainRouter.use(express.urlencoded({ extended: true }));
@@ -219,6 +227,6 @@ export function generateServerlessRouter(
     mainRouter.use(unknownErrorHandler);
 
     app.use('/', mainRouter);
-
+    app.use(XRayExpress.closeSegment());
     return app;
 }
