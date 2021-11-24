@@ -53,7 +53,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
     }
 
     async create(resourceType: string, resource: any, tenantId?: string) {
-        await validateResource(this.validators, resource);
+        //await validateResource(this.validators, resource);
 
         const createResponse = await this.dataService.createResource({ resourceType, resource, tenantId });
         return createResponse.resource;
