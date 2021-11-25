@@ -9,6 +9,7 @@ import createError from 'http-errors';
 import { isEmpty, mergeWith } from 'lodash';
 import CrudHandlerInterface from '../handlers/CrudHandlerInterface';
 import RouteHelper from './routeHelper';
+const AWSXRay = require('aws-xray-sdk');
 
 export default class GenericResourceRoute {
     readonly operations: TypeOperation[];
@@ -36,6 +37,8 @@ export default class GenericResourceRoute {
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
                     const { id, resourceType, tenantId } = req.params;
+                    const subsegment = AWSXRay.getSegment();
+                    const newSubseg = subsegment.addNewSubsegment(`get ${resourceType}`);
                     const response = await this.handler.read(resourceType, id, tenantId);
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'read',
@@ -43,6 +46,7 @@ export default class GenericResourceRoute {
                         requestContext: res.locals.requestContext,
                         readResponse: response,
                     });
+                    newSubseg.close()
                     if (updatedReadResponse && updatedReadResponse.meta) {
                         res.set({
                             ETag: `W/"${updatedReadResponse.meta.versionId}"`,
