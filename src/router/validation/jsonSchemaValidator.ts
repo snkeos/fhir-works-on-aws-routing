@@ -30,6 +30,9 @@ export default class JsonSchemaValidator implements Validator {
             ajv.addSchema(fhirV3Schema);
             schema = fhirV3Schema;
         }
+        if(process.env.COMPILE_SCHEMA === "true" && schema) {
+            ajv.compile(schema);
+        }
         this.schemaId = schema && 'id' in schema ? schema.id : '';
         this.ajv = ajv;
     }
