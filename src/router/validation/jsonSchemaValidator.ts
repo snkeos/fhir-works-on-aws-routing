@@ -20,19 +20,19 @@ export default class JsonSchemaValidator implements Validator {
 
     constructor(fhirVersion: FhirVersion) {
         const ajv = new Ajv({ schemaId: 'auto', allErrors: true });
+        const loadSchema = process.env.COMPILE_SCHEMA === "true" ? ajv.compile : ajv.addSchema;
         let schema;
+
         if (fhirVersion === '4.0.1') {
             ajv.addMetaSchema(schemaDraft06);
-            ajv.addSchema(fhirV4Schema);
+            loadSchema(fhirV4Schema);
             schema = fhirV4Schema;
         } else if (fhirVersion === '3.0.1') {
             ajv.addMetaSchema(schemaDraft04);
-            ajv.addSchema(fhirV3Schema);
+            loadSchema(fhirV3Schema);
             schema = fhirV3Schema;
         }
-        if(process.env.COMPILE_SCHEMA === "true" && schema) {
-            ajv.compile(schema);
-        }
+
         this.schemaId = schema && 'id' in schema ? schema.id : '';
         this.ajv = ajv;
     }
