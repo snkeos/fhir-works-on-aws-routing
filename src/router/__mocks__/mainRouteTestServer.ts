@@ -29,9 +29,9 @@ function provideDecodedToken(scopes: string[]) {
 function handleAuth(mainRouter: express.Router, resourceType: string) {
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        if (req.method === 'OPTIONS') {  
-           next();
-          return;
+        if (req.method === 'OPTIONS') {
+            next();
+            return;
         }
         let path: string;
         // RouteHelper.extractResourceUrl can throw an exception
