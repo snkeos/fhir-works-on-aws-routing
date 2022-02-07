@@ -18,6 +18,7 @@ import OperationsGenerator from '../operationsGenerator';
 import { validateResource } from '../validation/validationUtilities';
 import { buildTenantUrl } from '../routes/tenantBasedMainRouterDecorator';
 import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
+const AWSXRay = require('aws-xray-sdk');
 
 export default class ResourceHandler implements CrudHandlerInterface {
     private validators: Validator[];
@@ -53,23 +54,29 @@ export default class ResourceHandler implements CrudHandlerInterface {
     }
 
     async create(resourceType: string, resource: any, tenantId?: string) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`create`);
         await validateResource(this.validators, resource);
 
         const createResponse = await this.dataService.createResource({ resourceType, resource, tenantId });
+        newSubseg.close();
         return createResponse.resource;
     }
 
     async update(resourceType: string, id: string, resource: any, tenantId?: string) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`update`);
         await validateResource(this.validators, resource);
 
         const updateResponse = await this.dataService.updateResource({ resourceType, id, resource, tenantId });
+        newSubseg.close();
         return updateResponse.resource;
     }
 
     async patch(resourceType: string, id: string, resource: any, tenantId?: string) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`patch`);
+
         // TODO Add request validation around patching
         const patchResponse = await this.dataService.patchResource({ resourceType, id, resource, tenantId });
-
+        newSubseg.close();
         return patchResponse.resource;
     }
 
@@ -80,6 +87,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         requestContext: RequestContext,
         tenantId?: string,
     ) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`typeSearch`);
         const searchResponse = await this.searchService.searchResources(
             resourceType,
             queryParams,
@@ -97,12 +105,14 @@ export default class ResourceHandler implements CrudHandlerInterface {
             buildTenantUrl(tenantId, this.tenantUrlPart),
         );
 
-        return this.authService.authorizeAndFilterReadResponse({
+        const filter = this.authService.authorizeAndFilterReadResponse({
             operation: 'search-type',
             userIdentity,
             requestContext,
             readResponse: bundle,
         });
+        newSubseg.close();
+        return filter;
     }
 
     async typeHistory(
@@ -112,6 +122,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         requestContext: RequestContext,
         tenantId?: string,
     ) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`typeHistory`);
         const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
             userIdentity,
             requestContext,
@@ -126,7 +137,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchFilters,
             tenantId,
         });
-        return BundleGenerator.generateBundle(
+        const bundle = BundleGenerator.generateBundle(
             this.serverUrl,
             queryParams,
             historyResponse.result,
@@ -135,6 +146,8 @@ export default class ResourceHandler implements CrudHandlerInterface {
             undefined,
             buildTenantUrl(tenantId, this.tenantUrlPart),
         );
+        newSubseg.close();
+        return bundle;
     }
 
     async instanceHistory(
@@ -145,6 +158,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
         requestContext: RequestContext,
         tenantId?: string,
     ) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`instanceHistory`);
         const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
             userIdentity,
             requestContext,
@@ -161,7 +175,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchFilters,
             tenantId,
         });
-        return BundleGenerator.generateBundle(
+        const bundle = BundleGenerator.generateBundle(
             this.serverUrl,
             queryParams,
             historyResponse.result,
@@ -170,20 +184,28 @@ export default class ResourceHandler implements CrudHandlerInterface {
             id,
             buildTenantUrl(tenantId, this.tenantUrlPart),
         );
+        newSubseg.close();
+        return bundle;
     }
 
     async read(resourceType: string, id: string, tenantId?: string) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`read`);
         const getResponse = await this.dataService.readResource({ resourceType, id, tenantId });
+        newSubseg.close();
         return getResponse.resource;
     }
 
     async vRead(resourceType: string, id: string, vid: string, tenantId?: string) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`vRead`);
         const getResponse = await this.dataService.vReadResource({ resourceType, id, vid, tenantId });
+        newSubseg.close();
         return getResponse.resource;
     }
 
     async delete(resourceType: string, id: string, tenantId?: string) {
+        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`delete`);
         await this.dataService.deleteResource({ resourceType, id, tenantId });
+        newSubseg.close();
         return OperationsGenerator.generateSuccessfulDeleteOperation();
     }
 }
