@@ -16,9 +16,8 @@ import BundleGenerator from '../bundle/bundleGenerator';
 import CrudHandlerInterface from './CrudHandlerInterface';
 import OperationsGenerator from '../operationsGenerator';
 import { validateResource } from '../validation/validationUtilities';
-import { buildTenantUrl } from '../routes/tenantBasedMainRouterDecorator';
 import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
-const AWSXRay = require('aws-xray-sdk');
+import { hash, openNewXRaySubSegment, closeXRaySubSegment } from './utils';
 
 export default class ResourceHandler implements CrudHandlerInterface {
     private validators: Validator[];
@@ -31,10 +30,6 @@ export default class ResourceHandler implements CrudHandlerInterface {
 
     private authService: Authorization;
 
-    private serverUrl: string;
-
-    private tenantUrlPart?: string;
-
     constructor(
         dataService: Persistence,
         searchService: Search,
@@ -42,41 +37,36 @@ export default class ResourceHandler implements CrudHandlerInterface {
         authService: Authorization,
         serverUrl: string,
         validators: Validator[],
-        tenantUrlPart?: string,
     ) {
         this.validators = validators;
         this.dataService = dataService;
-        this.searchService = new ResourceTypeSearch(authService, searchService, serverUrl);
+        this.searchService = new ResourceTypeSearch(authService, searchService);
         this.historyService = historyService;
         this.authService = authService;
-        this.serverUrl = serverUrl;
-        this.tenantUrlPart = tenantUrlPart;
     }
 
     async create(resourceType: string, resource: any, tenantId?: string) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`create`);
+        const handlerSubSegment = openNewXRaySubSegment(`create`);
         await validateResource(this.validators, resource);
-
         const createResponse = await this.dataService.createResource({ resourceType, resource, tenantId });
-        newSubseg.close();
+        closeXRaySubSegment(handlerSubSegment);
         return createResponse.resource;
     }
 
     async update(resourceType: string, id: string, resource: any, tenantId?: string) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`update`);
+        const handlerSubSegment = openNewXRaySubSegment(`update`);
         await validateResource(this.validators, resource);
 
         const updateResponse = await this.dataService.updateResource({ resourceType, id, resource, tenantId });
-        newSubseg.close();
+        closeXRaySubSegment(handlerSubSegment);
         return updateResponse.resource;
     }
 
     async patch(resourceType: string, id: string, resource: any, tenantId?: string) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`patch`);
-
+        const handlerSubSegment = openNewXRaySubSegment(`patch`);
         // TODO Add request validation around patching
         const patchResponse = await this.dataService.patchResource({ resourceType, id, resource, tenantId });
-        newSubseg.close();
+        closeXRaySubSegment(handlerSubSegment);
         return patchResponse.resource;
     }
 
@@ -85,24 +75,25 @@ export default class ResourceHandler implements CrudHandlerInterface {
         queryParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`typeSearch`);
+        const handlerSubSegment = openNewXRaySubSegment(`typeSearch`);
         const searchResponse = await this.searchService.searchResources(
             resourceType,
             queryParams,
             userIdentity,
             requestContext,
+            serverUrl,
             tenantId,
         );
+
         const bundle = BundleGenerator.generateBundle(
-            this.serverUrl,
+            serverUrl,
             queryParams,
             searchResponse,
             'searchset',
             resourceType,
-            undefined,
-            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
 
         const filter = this.authService.authorizeAndFilterReadResponse({
@@ -110,8 +101,10 @@ export default class ResourceHandler implements CrudHandlerInterface {
             userIdentity,
             requestContext,
             readResponse: bundle,
+            fhirServiceBaseUrl: serverUrl,
         });
-        newSubseg.close();
+
+        closeXRaySubSegment(handlerSubSegment);
         return filter;
     }
 
@@ -120,33 +113,27 @@ export default class ResourceHandler implements CrudHandlerInterface {
         queryParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`typeHistory`);
+        const handlerSubSegment = openNewXRaySubSegment(`typeHistory`);
         const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
             userIdentity,
             requestContext,
             operation: 'history-type',
             resourceType,
+            fhirServiceBaseUrl: serverUrl,
         });
 
         const historyResponse = await this.historyService.typeHistory({
             resourceType,
             queryParams,
-            baseUrl: this.serverUrl,
+            baseUrl: serverUrl,
             searchFilters,
             tenantId,
         });
-        const bundle = BundleGenerator.generateBundle(
-            this.serverUrl,
-            queryParams,
-            historyResponse.result,
-            'history',
-            resourceType,
-            undefined,
-            buildTenantUrl(tenantId, this.tenantUrlPart),
-        );
-        newSubseg.close();
+        const bundle = BundleGenerator.generateBundle(serverUrl, queryParams, historyResponse.result, 'history', resourceType);
+        closeXRaySubSegment(handlerSubSegment);
         return bundle;
     }
 
@@ -156,56 +143,57 @@ export default class ResourceHandler implements CrudHandlerInterface {
         queryParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`instanceHistory`);
+        const handlerSubSegment = openNewXRaySubSegment(`instanceHistory`);
         const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
             userIdentity,
             requestContext,
             operation: 'history-instance',
             resourceType,
             id,
+            fhirServiceBaseUrl: serverUrl,
         });
 
         const historyResponse = await this.historyService.instanceHistory({
             id,
             resourceType,
             queryParams,
-            baseUrl: this.serverUrl,
+            baseUrl: serverUrl,
             searchFilters,
             tenantId,
         });
         const bundle = BundleGenerator.generateBundle(
-            this.serverUrl,
+            serverUrl,
             queryParams,
             historyResponse.result,
             'history',
             resourceType,
             id,
-            buildTenantUrl(tenantId, this.tenantUrlPart),
         );
-        newSubseg.close();
+        closeXRaySubSegment(handlerSubSegment);
         return bundle;
     }
 
     async read(resourceType: string, id: string, tenantId?: string) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`read`);
+        const handlerSubSegment = openNewXRaySubSegment(`read`);
         const getResponse = await this.dataService.readResource({ resourceType, id, tenantId });
-        newSubseg.close();
+        closeXRaySubSegment(handlerSubSegment);
         return getResponse.resource;
     }
 
     async vRead(resourceType: string, id: string, vid: string, tenantId?: string) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`vRead`);
+        const handlerSubSegment = openNewXRaySubSegment(`vRead`);
         const getResponse = await this.dataService.vReadResource({ resourceType, id, vid, tenantId });
-        newSubseg.close();
+        closeXRaySubSegment(handlerSubSegment);
         return getResponse.resource;
     }
 
     async delete(resourceType: string, id: string, tenantId?: string) {
-        const newSubseg = AWSXRay.getSegment().addNewSubsegment(`delete`);
+        const handlerSubSegment = openNewXRaySubSegment(`delete`);
         await this.dataService.deleteResource({ resourceType, id, tenantId });
-        newSubseg.close();
+        closeXRaySubSegment(handlerSubSegment);
         return OperationsGenerator.generateSuccessfulDeleteOperation();
     }
 }

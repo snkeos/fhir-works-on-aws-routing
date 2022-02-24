@@ -19,7 +19,6 @@ export default class BundleGenerator {
         bundleType: 'searchset' | 'history',
         resourceType?: string,
         id?: string,
-        tenantUrl?: string, // <tenantUrlPart>/<tenantId> or <tenantId>
     ) {
         const currentDateTime = new Date();
 
@@ -31,17 +30,7 @@ export default class BundleGenerator {
             },
             type: bundleType,
             total: searchResult.numberOfResults, // Total number of search results, not total of results on page
-            link: [
-                this.createLinkWithQuery(
-                    'self',
-                    baseUrl,
-                    bundleType === 'history',
-                    resourceType,
-                    id,
-                    queryParams,
-                    tenantUrl,
-                ),
-            ],
+            link: [this.createLinkWithQuery('self', baseUrl, bundleType === 'history', resourceType, id, queryParams)],
             entry: searchResult.entries,
         };
 
@@ -68,12 +57,8 @@ export default class BundleGenerator {
         resourceType?: string,
         id?: string,
         query?: any,
-        tenantUrl?: string,
     ) {
         let pathname = '';
-        if (tenantUrl) {
-            pathname += `/${tenantUrl}`;
-        }
         if (resourceType) {
             pathname += `/${resourceType}`;
         }
@@ -100,11 +85,7 @@ export default class BundleGenerator {
         };
     }
 
-    static generateTransactionBundle(
-        baseUrl: string,
-        bundleEntryResponses: BatchReadWriteResponse[],
-        tenantUrl?: string,
-    ) {
+    static generateTransactionBundle(baseUrl: string, bundleEntryResponses: BatchReadWriteResponse[]) {
         const id = uuidv4();
         const response = {
             resourceType: 'Bundle',
@@ -113,14 +94,14 @@ export default class BundleGenerator {
             link: [
                 {
                     relation: 'self',
-                    url: tenantUrl ? `${baseUrl}/${tenantUrl}` : baseUrl,
+                    url: baseUrl,
                 },
             ],
             entry: [],
         };
 
         const entries: any = [];
-        bundleEntryResponses.forEach(bundleEntryResponse => {
+        bundleEntryResponses.forEach((bundleEntryResponse) => {
             let status = '200 OK';
             if (bundleEntryResponse.operation === 'create') {
                 status = '201 Created';

@@ -41,9 +41,8 @@ export default class RootRoute {
         supportedGenericResources: string[],
         genericResource?: GenericResource,
         resources?: Resources,
-        tenantUrlPart?: string,
     ) {
-        this.router = express.Router({ mergeParams: true });
+        this.router = express.Router();
         this.operations = operations;
         this.bundleHandler = new BundleHandler(
             bundle,
@@ -53,10 +52,9 @@ export default class RootRoute {
             supportedGenericResources,
             genericResource,
             resources,
-            tenantUrlPart,
         );
         this.authService = authService;
-        this.rootHandler = new RootHandler(search, history, authService, serverUrl, tenantUrlPart);
+        this.rootHandler = new RootHandler(search, history, authService, serverUrl);
         this.init();
     }
 
@@ -66,13 +64,13 @@ export default class RootRoute {
                 '/',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     if (req.body.resourceType === 'Bundle') {
-                        const { tenantId } = req.params;
                         if (req.body.type.toLowerCase() === 'transaction') {
                             const response = await this.bundleHandler.processTransaction(
                                 req.body,
                                 res.locals.userIdentity,
                                 res.locals.requestContext,
-                                tenantId,
+                                res.locals.serverUrl,
+                                res.locals.tenantId,
                             );
                             res.send(response);
                         } else if (req.body.type.toLowerCase() === 'batch') {
@@ -80,7 +78,8 @@ export default class RootRoute {
                                 req.body,
                                 res.locals.userIdentity,
                                 res.locals.requestContext,
-                                tenantId,
+                                res.locals.serverUrl,
+                                res.locals.tenantId,
                             );
                             res.send(response);
                         } else {
@@ -97,18 +96,19 @@ export default class RootRoute {
                 '/',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     const searchParamQuery = req.query;
-                    const { tenantId } = req.params;
                     const response = await this.rootHandler.globalSearch(
                         searchParamQuery,
                         res.locals.userIdentity,
                         res.locals.requestContext,
-                        tenantId,
+                        res.locals.serverUrl,
+                        res.locals.tenantId,
                     );
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'search-system',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
                         readResponse: response,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
                     res.send(updatedReadResponse);
                 }),
@@ -123,12 +123,15 @@ export default class RootRoute {
                         searchParamQuery,
                         res.locals.userIdentity,
                         res.locals.requestContext,
+                        res.locals.serverUrl,
+                        res.locals.tenantId,
                     );
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'history-system',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
                         readResponse: response,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
                     res.send(updatedReadResponse);
                 }),

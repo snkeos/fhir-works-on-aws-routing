@@ -17,6 +17,7 @@ export default interface CrudHandlerInterface {
         searchParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ): any;
     typeHistory(
@@ -24,6 +25,7 @@ export default interface CrudHandlerInterface {
         searchParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ): any;
     instanceHistory(
@@ -32,6 +34,7 @@ export default interface CrudHandlerInterface {
         searchParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ): any;
 }

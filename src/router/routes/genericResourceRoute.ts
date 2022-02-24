@@ -9,7 +9,6 @@ import createError from 'http-errors';
 import { isEmpty, mergeWith } from 'lodash';
 import CrudHandlerInterface from '../handlers/CrudHandlerInterface';
 import RouteHelper from './routeHelper';
-const AWSXRay = require('aws-xray-sdk');
 
 export default class GenericResourceRoute {
     readonly operations: TypeOperation[];
@@ -36,14 +35,14 @@ export default class GenericResourceRoute {
                 '/:id',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
-                    const { id, resourceType, tenantId } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`read ${resourceType}`);
-                    const response = await this.handler.read(resourceType, id, tenantId);
+                    const { id, resourceType } = req.params;
+                    const response = await this.handler.read(resourceType, id, res.locals.tenantId);
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'read',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
                         readResponse: response,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
                     if (updatedReadResponse && updatedReadResponse.meta) {
                         res.set({
@@ -51,7 +50,6 @@ export default class GenericResourceRoute {
                             'Last-Modified': updatedReadResponse.meta.lastUpdated,
                         });
                     }
-                    newSubseg.close();
                     res.send(updatedReadResponse);
                 }),
             );
@@ -63,14 +61,14 @@ export default class GenericResourceRoute {
                 '/:id/_history/:vid',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
-                    const { id, vid, resourceType, tenantId } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`vread ${resourceType}`);
-                    const response = await this.handler.vRead(resourceType, id, vid, tenantId);
+                    const { id, vid, resourceType } = req.params;
+                    const response = await this.handler.vRead(resourceType, id, vid, res.locals.tenantId);
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'vread',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
                         readResponse: response,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
                     if (updatedReadResponse && updatedReadResponse.meta) {
                         res.set({
@@ -78,7 +76,6 @@ export default class GenericResourceRoute {
                             'Last-Modified': updatedReadResponse.meta.lastUpdated,
                         });
                     }
-                    newSubseg.close();
                     res.send(updatedReadResponse);
                 }),
             );
@@ -91,21 +88,21 @@ export default class GenericResourceRoute {
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
                     const { resourceType } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`history-type ${resourceType}`);
                     const searchParamQuery = req.query;
                     const response = await this.handler.typeHistory(
                         resourceType,
                         searchParamQuery,
                         res.locals.userIdentity,
                         res.locals.requestContext,
+                        res.locals.tenantId,
                     );
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'history-type',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
                         readResponse: response,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
-                    newSubseg.close();
                     res.send(updatedReadResponse);
                 }),
             );
@@ -118,41 +115,36 @@ export default class GenericResourceRoute {
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
                     const searchParamQuery = req.query;
-                    const { id, resourceType, tenantId } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`history-instance ${resourceType}`);
+                    const { id, resourceType } = req.params;
                     const response = await this.handler.instanceHistory(
                         resourceType,
                         id,
                         searchParamQuery,
                         res.locals.userIdentity,
                         res.locals.requestContext,
-                        tenantId,
+                        res.locals.tenantId,
                     );
                     const updatedReadResponse = await this.authService.authorizeAndFilterReadResponse({
                         operation: 'history-instance',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
                         readResponse: response,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
-                    newSubseg.close();
                     res.send(updatedReadResponse);
                 }),
             );
         }
 
         if (this.operations.includes('search-type')) {
-            const handleSearch = async (
-                res: express.Response,
-                resourceType: string,
-                searchParamQuery: any,
-                tenantId?: string,
-            ) => {
+            const handleSearch = async (res: express.Response, resourceType: string, searchParamQuery: any) => {
                 return this.handler.typeSearch(
                     resourceType,
                     searchParamQuery,
                     res.locals.userIdentity,
                     res.locals.requestContext,
-                    tenantId,
+                    res.locals.serverUrl,
+                    res.locals.tenantId,
                 );
             };
             // SEARCH
@@ -160,9 +152,9 @@ export default class GenericResourceRoute {
                 '/',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
-                    const { resourceType, tenantId } = req.params;
+                    const { resourceType } = req.params;
                     const searchParamQuery = req.query;
-                    const updatedSearchResponse = await handleSearch(res, resourceType, searchParamQuery, tenantId);
+                    const updatedSearchResponse = await handleSearch(res, resourceType, searchParamQuery);
                     res.send(updatedSearchResponse);
                 }),
             );
@@ -170,7 +162,7 @@ export default class GenericResourceRoute {
                 '/_search',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
-                    const { resourceType, tenantId } = req.params;
+                    const { resourceType } = req.params;
                     const searchParamQuery = req.query;
                     const { body } = req;
 
@@ -187,7 +179,7 @@ export default class GenericResourceRoute {
                         });
                     }
 
-                    const updatedSearchResponse = await handleSearch(res, resourceType, searchParamQuery, tenantId);
+                    const updatedSearchResponse = await handleSearch(res, resourceType, searchParamQuery);
                     res.send(updatedSearchResponse);
                 }),
             );
@@ -199,8 +191,7 @@ export default class GenericResourceRoute {
                 '/',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
-                    const { resourceType, tenantId } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`create ${resourceType}`);
+                    const { resourceType } = req.params;
                     const { body } = req;
 
                     await this.authService.isWriteRequestAuthorized({
@@ -208,13 +199,13 @@ export default class GenericResourceRoute {
                         operation: 'create',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
 
-                    const response = await this.handler.create(resourceType, body, tenantId);
+                    const response = await this.handler.create(resourceType, body, res.locals.tenantId);
                     if (response && response.meta) {
                         res.set({ ETag: `W/"${response.meta.versionId}"`, 'Last-Modified': response.meta.lastUpdated });
                     }
-                    newSubseg.close();
                     res.status(201).send(response);
                 }),
             );
@@ -225,8 +216,7 @@ export default class GenericResourceRoute {
             this.router.put(
                 '/:id',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-                    const { id, resourceType, tenantId } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`update ${resourceType}`);
+                    const { id, resourceType } = req.params;
                     const { body } = req;
 
                     if (body.id === null || body.id !== id) {
@@ -239,13 +229,13 @@ export default class GenericResourceRoute {
                         operation: 'update',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
 
-                    const response = await this.handler.update(resourceType, id, body, tenantId);
+                    const response = await this.handler.update(resourceType, id, body, res.locals.tenantId);
                     if (response && response.meta) {
                         res.set({ ETag: `W/"${response.meta.versionId}"`, 'Last-Modified': response.meta.lastUpdated });
                     }
-                    newSubseg.close();
                     res.send(response);
                 }),
             );
@@ -256,8 +246,7 @@ export default class GenericResourceRoute {
             this.router.patch(
                 '/:id',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
-                    const { id, resourceType, tenantId } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`patch ${resourceType}`);
+                    const { id, resourceType } = req.params;
                     const { body } = req;
 
                     if (body.id && body.id !== id) {
@@ -270,13 +259,13 @@ export default class GenericResourceRoute {
                         operation: 'patch',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
 
-                    const response = await this.handler.patch(resourceType, id, body, tenantId);
+                    const response = await this.handler.patch(resourceType, id, body, res.locals.tenantId);
                     if (response && response.meta) {
                         res.set({ ETag: `W/"${response.meta.versionId}"`, 'Last-Modified': response.meta.lastUpdated });
                     }
-                    newSubseg.close();
                     res.send(response);
                 }),
             );
@@ -288,19 +277,18 @@ export default class GenericResourceRoute {
                 '/:id',
                 RouteHelper.wrapAsync(async (req: express.Request, res: express.Response) => {
                     // Get the ResourceType looks like '/Patient'
-                    const { id, resourceType, tenantId } = req.params;
-                    const newSubseg = AWSXRay.getSegment().addNewSubsegment(`delete ${resourceType}`);
-                    const readResponse = await this.handler.read(resourceType, id, tenantId);
+                    const { id, resourceType } = req.params;
+                    const readResponse = await this.handler.read(resourceType, id, res.locals.tenantId);
 
                     await this.authService.isWriteRequestAuthorized({
                         resourceBody: readResponse,
                         operation: 'delete',
                         userIdentity: res.locals.userIdentity,
                         requestContext: res.locals.requestContext,
+                        fhirServiceBaseUrl: res.locals.serverUrl,
                     });
 
-                    const response = await this.handler.delete(resourceType, id, tenantId);
-                    newSubseg.close();
+                    const response = await this.handler.delete(resourceType, id, res.locals.tenantId);
                     res.send(response);
                 }),
             );

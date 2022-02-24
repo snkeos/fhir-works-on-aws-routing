@@ -2,6 +2,91 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.3.1](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.3.0...v6.3.1) (2021-12-10)
+
+
+### Bug Fixes
+
+* Use application/fhir+json as default content-type ([#147](https://github.com/awslabs/fhir-works-on-aws-routing/issues/147)) ([0fd1afb](https://github.com/awslabs/fhir-works-on-aws-routing/commit/0fd1afb6a5fbedb29b704edcbda9fc30601b6cd4))
+
+## [6.3.0](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.2.0...v6.3.0) (2021-10-28)
+
+
+### Features
+
+* pass sessionId param to search ([#140](https://github.com/awslabs/fhir-works-on-aws-routing/issues/140)) ([0607652](https://github.com/awslabs/fhir-works-on-aws-routing/commit/06076527ccc3b90880733ca78e38eceabcab3a61))
+
+## [6.2.0](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.1.2...v6.2.0) (2021-10-13)
+
+
+### Features
+
+* use requiresAccessToken value from GetExportStatusResponse ([#138](https://github.com/awslabs/fhir-works-on-aws-routing/issues/138)) ([0cdfc53](https://github.com/awslabs/fhir-works-on-aws-routing/commit/0cdfc530e30024453d3200d331b25dc8089b8cce))
+
+### [6.1.2](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.1.1...v6.1.2) (2021-09-20)
+
+
+### Bug Fixes
+
+* also sort by date for $docref when requesting latest doc ([#131](https://github.com/awslabs/fhir-works-on-aws-routing/issues/131)) ([09603b7](https://github.com/awslabs/fhir-works-on-aws-routing/commit/09603b740b3d444a0e1427cf03279b839825007f))
+
+### [6.1.1](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.1.0...v6.1.1) (2021-09-02)
+
+
+### Bug Fixes
+
+* move group export operation under Group resource ([#127](https://github.com/awslabs/fhir-works-on-aws-routing/issues/127)) ([502bd49](https://github.com/awslabs/fhir-works-on-aws-routing/commit/502bd4924acebf24899d6a7dd5e545df4a2fd9ea))
+
+## [6.1.0](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.0.2...v6.1.0) (2021-09-01)
+
+
+### Features
+
+* add group export operation to capability statement ([#125](https://github.com/awslabs/fhir-works-on-aws-routing/issues/125)) ([0bc8e3c](https://github.com/awslabs/fhir-works-on-aws-routing/commit/0bc8e3c6309fa1eae38b8d3ca257aaf86f79bda3))
+
+
+### Bug Fixes
+
+* properly emit throttle error ([#124](https://github.com/awslabs/fhir-works-on-aws-routing/issues/124)) ([7f06815](https://github.com/awslabs/fhir-works-on-aws-routing/commit/7f0681545b4f2dc18151e696a0da1e5c601ebb33))
+
+### [6.0.2](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.0.1...v6.0.2) (2021-08-26)
+
+
+### Bug Fixes
+
+* add routing from server errors to conflict errors ([#121](https://github.com/awslabs/fhir-works-on-aws-routing/issues/121)) ([3499e14](https://github.com/awslabs/fhir-works-on-aws-routing/commit/3499e1408290f4582c317bd920e9c627549f9e5a))
+
+### [6.0.1](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.0.0...v6.0.1) (2021-08-19)
+
+
+### Bug Fixes
+
+* pass serverUrl to bundle auth request ([#119](https://github.com/awslabs/fhir-works-on-aws-routing/issues/119)) ([d40986f](https://github.com/awslabs/fhir-works-on-aws-routing/commit/d40986fdc194a3107ade884c042d6c99b082e4bb))
+
+## [6.0.0](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v5.4.4...v6.0.0) (2021-08-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* System export will only include resources based on what scopes you provided(SMART) or what resources align with said group(RBAC)
+
+### Features
+
+* add support for multi-tenancy and group export ([#116](https://github.com/awslabs/fhir-works-on-aws-routing/issues/116)) ([666a4c4](https://github.com/awslabs/fhir-works-on-aws-routing/commit/666a4c472426d8b0aad5651c70aae8f605d7dc84)), closes [#94](https://github.com/awslabs/fhir-works-on-aws-routing/issues/94) [#97](https://github.com/awslabs/fhir-works-on-aws-routing/issues/97) [#98](https://github.com/awslabs/fhir-works-on-aws-routing/issues/98) [#99](https://github.com/awslabs/fhir-works-on-aws-routing/issues/99) [#100](https://github.com/awslabs/fhir-works-on-aws-routing/issues/100) [#107](https://github.com/awslabs/fhir-works-on-aws-routing/issues/107) [#112](https://github.com/awslabs/fhir-works-on-aws-routing/issues/112) [#111](https://github.com/awslabs/fhir-works-on-aws-routing/issues/111)
+
+
+### Bug Fixes
+
+* Handle 401 correctly in OperationOutcomes ([#117](https://github.com/awslabs/fhir-works-on-aws-routing/issues/117)) ([959040a](https://github.com/awslabs/fhir-works-on-aws-routing/commit/959040ae64ff43d0d979dda5425c903ab8814cef))
+
+### [5.4.4](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v5.4.3...v5.4.4) (2021-08-06)
+
+
+### Bug Fixes
+
+* add routing for 409 errors ([#109](https://github.com/awslabs/fhir-works-on-aws-routing/issues/109)) ([27c80ea](https://github.com/awslabs/fhir-works-on-aws-routing/commit/27c80ea7455d7cb3f9c184742d9667b4105d2ad3))
+* fix invalid capability statement ([#108](https://github.com/awslabs/fhir-works-on-aws-routing/issues/108)) ([0c9d81b](https://github.com/awslabs/fhir-works-on-aws-routing/commit/0c9d81bebdd47a45af23d967b7874d7171ace2bd))
+
 ### [5.4.3](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v5.4.2...v5.4.3) (2021-07-27)
 
 

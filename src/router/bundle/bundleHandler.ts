@@ -19,12 +19,11 @@ import {
 import createError from 'http-errors';
 import isEmpty from 'lodash/isEmpty';
 import { MAX_BUNDLE_ENTRIES } from '../../constants';
-import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 import BundleHandlerInterface from './bundleHandlerInterface';
 import BundleGenerator from './bundleGenerator';
 import BundleParser from './bundleParser';
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 import { validateResource } from '../validation/validationUtilities';
-import { buildTenantUrl } from '../routes/tenantBasedMainRouterDecorator';
 
 export default class BundleHandler implements BundleHandlerInterface {
     private bundleService: Bundle;
@@ -41,8 +40,6 @@ export default class BundleHandler implements BundleHandlerInterface {
 
     private supportedGenericResources: string[];
 
-    private tenantUrlPart?: string;
-
     private resourceTypeSearch?: ResourceTypeSearch;
 
     constructor(
@@ -53,7 +50,6 @@ export default class BundleHandler implements BundleHandlerInterface {
         supportedGenericResources: string[],
         genericResource?: GenericResource,
         resources?: Resources,
-        tenantUrlPart?: string,
     ) {
         this.bundleService = bundleService;
         this.serverUrl = serverUrl;
@@ -63,17 +59,23 @@ export default class BundleHandler implements BundleHandlerInterface {
         this.resources = resources;
 
         this.validators = validators;
-        this.tenantUrlPart = tenantUrlPart;
+
         if (this.genericResource) {
-            this.resourceTypeSearch = new ResourceTypeSearch(authService, this.genericResource.typeSearch, serverUrl);
+            this.resourceTypeSearch = new ResourceTypeSearch(authService, this.genericResource.typeSearch);
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars,prettier/prettier
-    async processBatch(bundleRequestJson: any, userIdentity: KeyValueMap, requestContext: RequestContext, tenantId?: string,
+    /* eslint-disable  @typescript-eslint/no-unused-vars,prettier/prettier */
+    async processBatch(
+        bundleRequestJson: any,
+        userIdentity: KeyValueMap,
+        requestContext: RequestContext,
+        serverUrl: string,
+        tenantId?: string,
     ) {
         throw new createError.BadRequest('Currently this server only support transaction Bundles');
     }
+    /* eslint-enable @typescript-eslint/no-unused-vars,prettier/prettier */
 
     resourcesInBundleThatServerDoesNotSupport(
         bundleRequestJson: any,
@@ -114,6 +116,7 @@ export default class BundleHandler implements BundleHandlerInterface {
         bundleRequestJson: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ) {
         const startTime = new Date();
@@ -137,7 +140,7 @@ export default class BundleHandler implements BundleHandlerInterface {
                     bundleRequestJson,
                     this.genericResource.persistence,
                     this.resourceTypeSearch,
-                    this.serverUrl,
+                    serverUrl,
                     userIdentity,
                     requestContext,
                     tenantId,
@@ -146,13 +149,14 @@ export default class BundleHandler implements BundleHandlerInterface {
                 throw new Error('Cannot process bundle');
             }
         } catch (e) {
-            throw new createError.BadRequest(e.message);
+            throw new createError.BadRequest((e as any).message);
         }
 
         await this.authService.isBundleRequestAuthorized({
             userIdentity,
             requestContext,
             requests,
+            fhirServiceBaseUrl: serverUrl,
         });
 
         if (requests.length > MAX_BUNDLE_ENTRIES) {
@@ -161,12 +165,14 @@ export default class BundleHandler implements BundleHandlerInterface {
             );
         }
 
-        const bundleServiceResponse = await this.bundleService.transaction({ requests, startTime });
+        const bundleServiceResponse = await this.bundleService.transaction({ requests, startTime, tenantId });
         if (!bundleServiceResponse.success) {
             if (bundleServiceResponse.errorType === 'SYSTEM_ERROR') {
                 throw new createError.InternalServerError(bundleServiceResponse.message);
             } else if (bundleServiceResponse.errorType === 'USER_ERROR') {
                 throw new createError.BadRequest(bundleServiceResponse.message);
+            } else if (bundleServiceResponse.errorType === 'CONFLICT_ERROR') {
+                throw new createError.Conflict(bundleServiceResponse.message);
             }
         }
 
@@ -187,6 +193,7 @@ export default class BundleHandler implements BundleHandlerInterface {
                     userIdentity,
                     requestContext,
                     readResponse: bundleServiceResponse.batchReadWriteResponses[index].resource,
+                    fhirServiceBaseUrl: serverUrl,
                 });
             }
             return Promise.resolve();
@@ -207,10 +214,6 @@ export default class BundleHandler implements BundleHandlerInterface {
             bundleServiceResponse.batchReadWriteResponses[index] = entryResponse;
         });
 
-        return BundleGenerator.generateTransactionBundle(
-            this.serverUrl,
-            bundleServiceResponse.batchReadWriteResponses,
-            buildTenantUrl(tenantId, this.tenantUrlPart),
-        );
+        return BundleGenerator.generateTransactionBundle(serverUrl, bundleServiceResponse.batchReadWriteResponses);
     }
 }

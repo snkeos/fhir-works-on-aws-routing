@@ -18,8 +18,8 @@ import {
     KeyValueMap,
     RequestContext,
 } from 'fhir-works-on-aws-interface';
-import { URLSearchParams } from 'url';
-import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
+
+import querystring from 'querystring';
 
 import {
     captureFullUrlParts,
@@ -27,9 +27,8 @@ import {
     captureResourceIdRegExp,
     captureResourceTypeRegExp,
 } from '../../regExpressions';
-import { forEach } from 'lodash';
-import querystring from 'querystring';
-// import { Search } from 'aws-sdk/clients/kendra';
+
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 
 export default class BundleParser {
     static SELF_CONTAINED_REFERENCE = 'SELF_CONTAINED_REFERENCE';
@@ -61,6 +60,7 @@ export default class BundleParser {
                     resourceTypeSearch,
                     userIdentity,
                     requestContext,
+                    serverUrl,
                     tenantId,
                 ),
             );
@@ -76,7 +76,6 @@ export default class BundleParser {
                     fullUrl: entry.fullUrl || '',
                     resourceType: this.getResourceType(entry, operation),
                     id,
-                    tenantId,
                 };
 
                 const references = this.getReferences(entry);
@@ -218,7 +217,7 @@ export default class BundleParser {
             const requestWithRef = Object.values(idToRequestWithRef)[i];
             if (requestWithRef.references) {
                 for (let j = 0; j < requestWithRef.references.length; j += 1) {
-                    const reference = requestWithRef.references[j];
+                    const reference: Reference = requestWithRef.references[j];
 
                     let referenceIsFound = false;
                     if (reference.referenceFullUrl === this.SELF_CONTAINED_REFERENCE) {
@@ -416,37 +415,6 @@ export default class BundleParser {
      * Get the resource id specified in the entry
      * @param entry - Entry to parse
      * @param operation - Operation specified in the entry
-     */
-    private static getResourceId(entry: any, operation: TypeOperation | SystemOperation) {
-        let id = '';
-        if (operation === 'create') {
-            id = uuidv4();
-        } else if (operation === 'update' || operation === 'patch') {
-            id = entry.resource.id;
-        } else if (
-            operation === 'read' ||
-            operation === 'vread' ||
-            operation === 'history-instance' ||
-            operation === 'delete'
-        ) {
-            const { url } = entry.request;
-            const match = url.match(captureResourceIdRegExp);
-            if (!match) {
-                throw new Error(`Bundle entry does not contain resourceId: ${url}`);
-            }
-            // IDs are in the form <resource-type>/id
-            // exp. Patient/abcd1234
-            // eslint-disable-next-line prefer-destructuring
-            id = match[1];
-        }
-
-        return id;
-    }
-
-    /**
-     * Get the resource id specified in the entry
-     * @param entry - Entry to parse
-     * @param operation - Operation specified in the entry
      * @param resourceTypeSearch - The search helper object for conditional update
      * @param userIdentity - auth information
      * @param requestContext - additional request infos
@@ -458,6 +426,7 @@ export default class BundleParser {
         resourceTypeSearch: ResourceTypeSearch,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ): Promise<[TypeOperation | SystemOperation, string, any]> {
         let id = '';
@@ -477,6 +446,7 @@ export default class BundleParser {
                     parsedQs,
                     userIdentity,
                     requestContext,
+                    serverUrl,
                     tenantId,
                 );
 
@@ -509,6 +479,7 @@ export default class BundleParser {
         }
         return [operation, id, entry];
     }
+
     /**
      * Get the resource type specified in the entry
      * @param entry - Entry to parse

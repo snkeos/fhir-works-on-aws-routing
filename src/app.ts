@@ -3,13 +3,6 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-const AWSXRay = require('aws-xray-sdk');
-
-// noinspection JSCheckFunctionSignatures
-AWSXRay.captureHTTPsGlobal(require('http'));
-// noinspection JSCheckFunctionSignatures
-AWSXRay.captureHTTPsGlobal(require('https'));
-
 import express, { Express } from 'express';
 import cors, { CorsOptions } from 'cors';
 import {
@@ -32,11 +25,35 @@ import ExportRoute from './router/routes/exportRoute';
 import WellKnownUriRouteRoute from './router/routes/wellKnownUriRoute';
 import { FHIRStructureDefinitionRegistry } from './registry';
 import { initializeOperationRegistry } from './operationDefinitions';
-import RouteHelper from './router/routes/routeHelper';
-import { buildMainRouterDecorator } from './router/routes/tenantBasedMainRouterDecorator';
+import { setServerUrlMiddleware } from './router/middlewares/setServerUrl';
+import { setTenantIdMiddleware } from './router/middlewares/setTenantId';
+import { setContentTypeMiddleware } from './router/middlewares/setContentType';
+import { isLambdaEnv } from './router/handlers/utils';
+
+let XRayExpress: any;
+
+if (isLambdaEnv()) {
+    const AWSXRay = require('aws-xray-sdk');
+    // noinspection JSCheckFunctionSignatures
+    AWSXRay.captureHTTPsGlobal(require('http'));
+    // noinspection JSCheckFunctionSignatures
+    AWSXRay.captureHTTPsGlobal(require('https'));
+    XRayExpress = AWSXRay.express;
+}
 
 const configVersionSupported: ConfigVersion = 1;
-const XRayExpress = AWSXRay.express;
+
+const openXRaySegment = (app: Express, name: string): any => {
+    if (isLambdaEnv()) {
+        app.use(XRayExpress.openSegment(name));
+    }
+};
+
+const closeXRaySegment = (app: Express): any => {
+    if (XRayExpress) {
+        app.use(XRayExpress.closeSegment());
+    }
+};
 
 function prepareRequestContext(req: express.Request): RequestContext {
     const requestContext: RequestContext = {
@@ -66,15 +83,16 @@ export function generateServerlessRouter(
     const configHandler: ConfigHandler = new ConfigHandler(fhirConfig, supportedGenericResources);
     const { fhirVersion, genericResource, compiledImplementationGuides } = fhirConfig.profile;
     const serverUrl: string = fhirConfig.server.url;
-    const { multiTenancyOptions } = fhirConfig;
     let hasCORSEnabled: boolean = false;
     const registry = new FHIRStructureDefinitionRegistry(compiledImplementationGuides);
     const operationRegistry = initializeOperationRegistry(configHandler);
 
     const app = express();
     app.disable('x-powered-by');
-    app.use(XRayExpress.openSegment('AWS FHIRServer Server API'));
-    const mainRouter = express.Router();
+
+    openXRaySegment(app, 'AWS FHIRServer Server API');
+
+    const mainRouter = express.Router({ mergeParams: true });
 
     mainRouter.use(express.urlencoded({ extended: true }));
     mainRouter.use(
@@ -90,7 +108,9 @@ export function generateServerlessRouter(
         hasCORSEnabled = true;
     }
 
-    const mainRouterDecorator = buildMainRouterDecorator(mainRouter, multiTenancyOptions);
+    mainRouter.use(setServerUrlMiddleware(fhirConfig));
+    mainRouter.use(setContentTypeMiddleware);
+
     // Metadata
     const metadataRoute: MetadataRoute = new MetadataRoute(
         fhirVersion,
@@ -99,7 +119,7 @@ export function generateServerlessRouter(
         operationRegistry,
         hasCORSEnabled,
     );
-    mainRouterDecorator.use('/metadata', metadataRoute.router);
+    mainRouter.use('/metadata', metadataRoute.router);
 
     if (fhirConfig.auth.strategy.service === 'SMART-on-FHIR') {
         // well-known URI http://www.hl7.org/fhir/smart-app-launch/conformance/index.html#using-well-known
@@ -113,47 +133,50 @@ export function generateServerlessRouter(
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         try {
-            if (req.method !== 'OPTIONS') {
-                const path = RouteHelper.extractResourceUrl(req.method, req.path);
-                const requestInformation =
-                    operationRegistry.getOperation(req.method, path)?.requestInformation ??
-                    getRequestInformation(req.method, path);
-
-                // Clean auth header (remove 'Bearer ')
-                req.headers.authorization = cleanAuthHeader(req.headers.authorization);
-                res.locals.requestContext = prepareRequestContext(req);
-
-                res.locals.userIdentity = await fhirConfig.auth.authorization.verifyAccessToken({
-                    ...requestInformation,
-                    requestContext: res.locals.requestContext,
-                    accessToken: req.headers.authorization,
-                });
+            if (req.method === 'OPTIONS') {
+                next();
             }
+            const requestInformation =
+                operationRegistry.getOperation(req.method, req.path)?.requestInformation ??
+                getRequestInformation(req.method, req.path);
+            // Clean auth header (remove 'Bearer ')
+            req.headers.authorization = cleanAuthHeader(req.headers.authorization);
+            res.locals.requestContext = prepareRequestContext(req);
+            res.locals.userIdentity = await fhirConfig.auth.authorization.verifyAccessToken({
+                ...requestInformation,
+                requestContext: res.locals.requestContext,
+                accessToken: req.headers.authorization,
+                fhirServiceBaseUrl: res.locals.serverUrl,
+            });
             next();
         } catch (e) {
             next(e);
         }
     });
 
+    if (fhirConfig.multiTenancyConfig?.enableMultiTenancy) {
+        mainRouter.use(setTenantIdMiddleware(fhirConfig));
+    }
+
     // Export
     if (fhirConfig.profile.bulkDataAccess) {
         const exportRoute = new ExportRoute(
-            serverUrl,
             fhirConfig.profile.bulkDataAccess,
             fhirConfig.auth.authorization,
+            fhirConfig.profile.fhirVersion,
         );
 
-        mainRouterDecorator.use('/', exportRoute.router);
+        mainRouter.use('/', exportRoute.router);
     }
 
     // Operations defined by OperationDefinition resources
-    operationRegistry.getAllRouters().forEach(router => {
-        mainRouterDecorator.use('/', router);
+    operationRegistry.getAllRouters().forEach((router) => {
+        mainRouter.use('/', router);
     });
 
     // Special Resources
     if (fhirConfig.profile.resources) {
-        Object.entries(fhirConfig.profile.resources).forEach(async resourceEntry => {
+        Object.entries(fhirConfig.profile.resources).forEach(async (resourceEntry) => {
             const { operations, persistence, typeSearch, typeHistory, fhirVersions } = resourceEntry[1];
             if (fhirVersions.includes(fhirVersion)) {
                 const resourceHandler: ResourceHandler = new ResourceHandler(
@@ -163,7 +186,6 @@ export function generateServerlessRouter(
                     fhirConfig.auth.authorization,
                     serverUrl,
                     fhirConfig.validators,
-                    multiTenancyOptions.tenantUrlPart,
                 );
 
                 const route: GenericResourceRoute = new GenericResourceRoute(
@@ -171,7 +193,7 @@ export function generateServerlessRouter(
                     resourceHandler,
                     fhirConfig.auth.authorization,
                 );
-                mainRouterDecorator.use(`/:resourceType(${resourceEntry[0]})`, route.router);
+                mainRouter.use(`/:resourceType(${resourceEntry[0]})`, route.router);
             }
         });
     }
@@ -189,7 +211,6 @@ export function generateServerlessRouter(
             fhirConfig.auth.authorization,
             serverUrl,
             fhirConfig.validators,
-            multiTenancyOptions.tenantUrlPart,
         );
 
         const genericRoute: GenericResourceRoute = new GenericResourceRoute(
@@ -200,7 +221,7 @@ export function generateServerlessRouter(
 
         // Set up Resource for each generic resource
         genericFhirResources.forEach(async (resourceType: string) => {
-            mainRouterDecorator.use(`/:resourceType(${resourceType})`, genericRoute.router);
+            mainRouter.use(`/:resourceType(${resourceType})`, genericRoute.router);
         });
     }
 
@@ -217,16 +238,19 @@ export function generateServerlessRouter(
             genericFhirResources,
             genericResource,
             fhirConfig.profile.resources,
-            multiTenancyOptions.tenantUrlPart,
         );
-        mainRouterDecorator.use('/', rootRoute.router);
+        mainRouter.use('/', rootRoute.router);
     }
 
     mainRouter.use(applicationErrorMapper);
     mainRouter.use(httpErrorHandler);
     mainRouter.use(unknownErrorHandler);
 
-    app.use('/', mainRouter);
-    app.use(XRayExpress.closeSegment());
+    if (fhirConfig.multiTenancyConfig?.enableMultiTenancy && fhirConfig.multiTenancyConfig?.useTenantSpecificUrl) {
+        app.use('/tenant/:tenantIdFromPath([a-zA-Z0-9\\-_]{1,64})', mainRouter);
+    } else {
+        app.use('/', mainRouter);
+    }
+    closeXRaySegment(app);
     return app;
 }

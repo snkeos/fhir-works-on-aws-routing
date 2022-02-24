@@ -26,7 +26,7 @@ const dummyRequestContext: RequestContext = {
     hostname: 'fhir.acme.com',
     verb: 'GET',
 };
-const resourceTypeSearch = new ResourceTypeSearch(AuthorizationService, ElasticSearchService, 'https://API_URL.com');
+const resourceTypeSearch = new ResourceTypeSearch(AuthorizationService, ElasticSearchService);
 describe('parseResource', () => {
     const serverUrl = 'https://API_URL.com';
     beforeEach(() => {
@@ -74,8 +74,8 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support PATCH entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support PATCH entries in the Bundle');
             }
         });
         test('Bundle has a Transaction request', async () => {
@@ -107,8 +107,8 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support Bundle entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support Bundle entries in the Bundle');
             }
         });
 
@@ -139,8 +139,8 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support V_READ entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support V_READ entries in the Bundle');
             }
         });
         test('Bundle has a search type request', async () => {
@@ -170,8 +170,8 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support SEARCH entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support SEARCH entries in the Bundle');
             }
         });
         test('Bundle has a search system request', async () => {
@@ -201,8 +201,8 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support SEARCH entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support SEARCH entries in the Bundle');
             }
         });
         test('Bundle has a history instance request', async () => {
@@ -232,8 +232,8 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support HISTORY entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support HISTORY entries in the Bundle');
             }
         });
         test('Bundle has a history type request', async () => {
@@ -263,8 +263,8 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support HISTORY entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support HISTORY entries in the Bundle');
             }
         });
         test('Bundle has a history system request', async () => {
@@ -294,14 +294,13 @@ describe('parseResource', () => {
                 );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual('We currently do not support HISTORY entries in the Bundle');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual('We currently do not support HISTORY entries in the Bundle');
             }
         });
     });
 
     describe('Conditional update support', () => {
-
         const conditionalUpdatebundleRequestJson = {
             resourceType: 'Bundle',
             type: 'transaction',
@@ -340,7 +339,6 @@ describe('parseResource', () => {
             const consoleOutput: string[] = [];
             const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
             console.log = mockedLog;
-
 
             const expectedRequests: BatchReadWriteRequest[] = [
                 {
@@ -544,7 +542,8 @@ describe('parseResource', () => {
                 },
             ]);
 
-            try{
+            try {
+                /* eslint-disable @typescript-eslint/no-unused-vars */
                 // OPERATE
                 const actualRequests = await BundleParser.parseResource(
                     conditionalUpdatebundleRequestJson,
@@ -553,11 +552,11 @@ describe('parseResource', () => {
                     serverUrl,
                     practitionerDecoded,
                     dummyRequestContext,
-                );            
+                );
             } catch (e) {
                 // CHECK
-                expect(e.name).toEqual('Error');
-                expect(e.message).toContain('Cannot process bundle: Conditional update: Too many resources found for');
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toContain('Cannot process bundle: Conditional update: Too many resources found for');
             }
         });
     });
@@ -967,8 +966,7 @@ describe('parseResource', () => {
                                         {
                                             coding: [
                                                 {
-                                                    system:
-                                                        'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+                                                    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
                                                     code: 'ATND',
                                                 },
                                             ],
@@ -1165,7 +1163,6 @@ describe('parseResource', () => {
                 practitionerDecoded,
                 dummyRequestContext,
             );
-
             expect(batchReadWriteRequest).toHaveLength(1);
             expect(batchReadWriteRequest[0]).toMatchInlineSnapshot(
                 { id: expect.stringMatching(uuidRegExp) },
@@ -1198,7 +1195,6 @@ describe('parseResource', () => {
                     },
                   },
                   "resourceType": "Observation",
-                  "tenantId": undefined,
                 }
             `,
             );
@@ -1249,7 +1245,6 @@ describe('parseResource', () => {
                 practitionerDecoded,
                 dummyRequestContext,
             );
-
             expect(batchReadWriteRequest).toHaveLength(1);
             expect(batchReadWriteRequest[0]).toMatchInlineSnapshot(
                 { id: expect.stringMatching(uuidRegExp) },
@@ -1282,7 +1277,6 @@ describe('parseResource', () => {
                     },
                   },
                   "resourceType": "Observation",
-                  "tenantId": undefined,
                 }
             `,
             );
@@ -1448,8 +1442,8 @@ describe('parseResource', () => {
                     dummyRequestContext,
                 );
             } catch (e) {
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual(
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual(
                     "This entry refer to a resource that does not exist on this server. Entry is referring to 'Patient/1234'",
                 );
             }
@@ -1619,8 +1613,8 @@ describe('parseResource', () => {
                     dummyRequestContext,
                 );
             } catch (e) {
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual(
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual(
                     'This entry\'s reference is not recognized. Entry\'s reference is: invalidReferenceFormat . Valid format includes "<url>/resourceType/id" or "<urn:uuid:|urn:oid:><id>',
                 );
             }
@@ -1892,8 +1886,8 @@ describe('parseResource', () => {
                     dummyRequestContext,
                 );
             } catch (e) {
-                expect(e.name).toEqual('Error');
-                expect(e.message).toEqual(
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toEqual(
                     'This entry refer to a contained resource that does not exist. Contained resource is referring to #referral',
                 );
             }
