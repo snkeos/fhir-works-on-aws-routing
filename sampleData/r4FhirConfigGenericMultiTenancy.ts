@@ -23,33 +23,32 @@ const config = (stubs: {
         orgName: 'Organization Name',
     },
     auth: {
-        strategy: {
-            oauthPolicy: {
-                authorizationEndpoint: 'http://example.com/authorization',
-                tokenEndpoint: 'http://example.com/oauth2/token',
-            },
-            service: 'OAuth',
-        },
+        strategy: {},
         authorization: stubs.passThroughAuthz,
     },
     server: {
         url: 'http://example.com',
     },
     profile: {
-        fhirVersion: '3.0.1',
-        systemOperations: ['transaction'],
+        fhirVersion: '4.0.1',
+        systemOperations: [],
         bundle: stubs.bundle,
         systemSearch: stubs.search,
         systemHistory: stubs.history,
         genericResource: {
-            operations: ['read', 'create', 'update', 'vread', 'search-type'],
-            excludedR4Resources: ['Organization', 'Account', 'Patient'],
-            excludedSTU3Resources: ['ActivityDefinition', 'AllergyIntolerance'],
-            fhirVersions: ['4.0.1', '3.0.1'],
+            operations: ['create', 'read', 'update', 'patch', 'delete', 'vread', 'search-type', 'history-instance'],
+            fhirVersions: ['4.0.1'],
             persistence: stubs.persistence,
             typeSearch: stubs.search,
             typeHistory: stubs.history,
         },
+    },
+    multiTenancyConfig: {
+        enableMultiTenancy: true,
+        useTenantSpecificUrl: true,
+        tenantIdClaimPath: 'cognito:groups',
+        tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
+        tenantAccessTokenAllTenantsScope: 'tenants/all',
     },
 });
 

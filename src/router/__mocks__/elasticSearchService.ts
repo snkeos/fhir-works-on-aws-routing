@@ -35,7 +35,8 @@ class ElasticSearchTestService implements Search {
 
     // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
     async getCapabilities(): Promise<SearchCapabilityStatement> {
-        throw new Error('Method not implemented.');
+        const dummy: SearchCapabilityStatement = {};
+        return dummy;
     }
 }
 

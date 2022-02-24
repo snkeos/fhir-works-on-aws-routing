@@ -1,5 +1,5 @@
 import { Authorization, KeyValueMap, RequestContext, Search, SearchResult } from 'fhir-works-on-aws-interface';
-
+import { hash } from '../router/handlers/utils';
 /**
  * Helper encapsulates the typeSearch request
  */
@@ -8,12 +8,9 @@ export default class ResourceTypeSearch {
 
     private searchService: Search;
 
-    readonly serverUrl: string;
-
-    constructor(authService: Authorization, searchService: Search, serverUrl: string) {
+    constructor(authService: Authorization, searchService: Search) {
         this.authService = authService;
         this.searchService = searchService;
-        this.serverUrl = serverUrl;
     }
 
     async searchResources(
@@ -21,6 +18,7 @@ export default class ResourceTypeSearch {
         queryParams: any,
         userIdentity: KeyValueMap,
         requestContext: RequestContext,
+        serverUrl: string,
         tenantId?: string,
     ): Promise<SearchResult> {
         const allowedResourceTypes = await this.authService.getAllowedResourceTypesForOperation({
@@ -34,15 +32,17 @@ export default class ResourceTypeSearch {
             requestContext,
             operation: 'search-type',
             resourceType,
+            fhirServiceBaseUrl: serverUrl,
         });
 
         const searchResponse = await this.searchService.typeSearch({
             resourceType,
             queryParams,
-            baseUrl: this.serverUrl,
+            baseUrl: serverUrl,
             allowedResourceTypes,
             searchFilters,
             tenantId,
+            sessionId: hash(userIdentity),
         });
 
         return searchResponse.result;

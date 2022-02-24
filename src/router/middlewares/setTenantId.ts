@@ -48,6 +48,32 @@ const getTenantIdFromAudClaim = (audClaim: any, baseUrl: string): string | undef
     return uniqTenantIds[0];
 };
 
+
+// Evaluates if an all tenants scope matches with the configured one.
+function grantAccessForAllTenants(res: express.Response, fhirConfig: FhirConfig) {
+    if (fhirConfig.multiTenancyConfig?.tenantAccessTokenAllTenantsScope) {
+        const scopes: string[] = res.locals.userIdentity.scope ?? [];
+        if (scopes.includes(fhirConfig.multiTenancyConfig?.tenantAccessTokenAllTenantsScope)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Evaluates if tenant id url param value is included in the token, or not.
+function grantAccessForSpecificTenant(tenantIdFromCustomClaim: any, fhirConfig: FhirConfig, tenantId: string) {
+    if (tenantIdFromCustomClaim && Array.isArray(tenantIdFromCustomClaim)) {
+        const tenantIdFromCustomClaimAsArray: string[] = tenantIdFromCustomClaim;
+        const tenantAccessTokenClaimValueToTest: string = fhirConfig.multiTenancyConfig?.tenantAccessTokenClaimValuePrefix
+            ? fhirConfig.multiTenancyConfig?.tenantAccessTokenClaimValuePrefix + tenantId
+            : tenantId;
+        if (tenantIdFromCustomClaimAsArray.includes(tenantAccessTokenClaimValueToTest)) {
+            return true;
+        }
+        return false;
+    }
+}
+
 /**
  * Sets the value of `res.locals.tenantId`
  * tenantId is used to identify tenants in a multi-tenant setup
@@ -56,8 +82,30 @@ export const setTenantIdMiddleware: (
     fhirConfig: FhirConfig,
 ) => (req: express.Request, res: express.Response, next: express.NextFunction) => void = (fhirConfig: FhirConfig) => {
     return RouteHelper.wrapAsync(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        // Find tenantId from custom claim and aud claim
+        // The default tenant is always allowed to be accesed
+        if (req.params.tenantIdFromPath === 'DEFAULT') {
+            res.locals.tenantId = req.params.tenantIdFromPath;
+            next();
+            return;
+        }
+
+        // Check for an all tenants scope
+        if (grantAccessForAllTenants(res, fhirConfig)) {
+            res.locals.tenantId = req.params.tenantIdFromPath;
+            next();
+            return;
+        }
+
+        // Find tenantId from custom claim
         const tenantIdFromCustomClaim = get(res.locals.userIdentity, fhirConfig.multiTenancyConfig?.tenantIdClaimPath!);
+        // Check for a specific tenants scope
+        if (grantAccessForSpecificTenant(tenantIdFromCustomClaim, fhirConfig, req.params.tenantIdFromPath)) {
+            res.locals.tenantId = req.params.tenantIdFromPath;
+            next();
+            return;
+        }
+
+        // Find tenantId from custom claim and aud claim
         const tenantIdFromAudClaim = getTenantIdFromAudClaim(res.locals.userIdentity.aud, fhirConfig.server.url);
 
         // TenantId should exist in at least one claim, if exist in both claims, they should be equal

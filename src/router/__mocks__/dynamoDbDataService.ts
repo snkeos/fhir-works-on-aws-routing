@@ -17,12 +17,20 @@ import {
 } from 'fhir-works-on-aws-interface';
 import validPatient from '../../../sampleData/validV4Patient.json';
 
+let createResourceId: string = 'id';
+
+export function setExpectedCreateResourceId(resourceId: string) {
+    createResourceId = resourceId;
+}
+
 const DynamoDbDataService: Persistence = class {
     static updateCreateSupported: boolean = false;
 
+    static createResourceId: string = 'id';
+
     static async createResource(request: CreateResourceRequest): Promise<GenericResponse> {
         const resourceCopy: any = clone(request.resource);
-        resourceCopy.id = request.id || 'id';
+        resourceCopy.id = request.id || createResourceId;
         resourceCopy.meta = generateMeta('1');
         return {
             message: 'Resource created',
@@ -123,3 +131,4 @@ const DynamoDbDataService: Persistence = class {
     }
 };
 export default DynamoDbDataService;
+
