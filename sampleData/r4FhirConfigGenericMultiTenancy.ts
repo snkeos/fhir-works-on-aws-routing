@@ -47,8 +47,8 @@ const config = (stubs: {
         enableMultiTenancy: true,
         useTenantSpecificUrl: true,
         tenantIdClaimPath: 'cognito:groups',
-        tenantAccessTokenClaimValuePrefix: 'tenantprefix:',
-        tenantAccessTokenAllTenantsScope: 'tenants/all',
+        tenantIdClaimValuePrefix: 'tenantprefix:',
+        grantAccessAllTenantsScope: 'tenants/all',
     },
 });
 

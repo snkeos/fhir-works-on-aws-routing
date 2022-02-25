@@ -51,9 +51,9 @@ const getTenantIdFromAudClaim = (audClaim: any, baseUrl: string): string | undef
 
 // Evaluates if an all tenants scope matches with the configured one.
 function grantAccessForAllTenants(res: express.Response, fhirConfig: FhirConfig) {
-    if (fhirConfig.multiTenancyConfig?.tenantAccessTokenAllTenantsScope) {
+    if (fhirConfig.multiTenancyConfig?.grantAccessAllTenantsScope) {
         const scopes: string[] = res.locals.userIdentity.scope ?? [];
-        if (scopes.includes(fhirConfig.multiTenancyConfig?.tenantAccessTokenAllTenantsScope)) {
+        if (scopes.includes(fhirConfig.multiTenancyConfig?.grantAccessAllTenantsScope)) {
             return true;
         }
     }
@@ -64,8 +64,8 @@ function grantAccessForAllTenants(res: express.Response, fhirConfig: FhirConfig)
 function grantAccessForSpecificTenant(tenantIdFromCustomClaim: any, fhirConfig: FhirConfig, tenantId: string) {
     if (tenantIdFromCustomClaim && Array.isArray(tenantIdFromCustomClaim)) {
         const tenantIdFromCustomClaimAsArray: string[] = tenantIdFromCustomClaim;
-        const tenantAccessTokenClaimValueToTest: string = fhirConfig.multiTenancyConfig?.tenantAccessTokenClaimValuePrefix
-            ? fhirConfig.multiTenancyConfig?.tenantAccessTokenClaimValuePrefix + tenantId
+        const tenantAccessTokenClaimValueToTest: string = fhirConfig.multiTenancyConfig?.tenantIdClaimValuePrefix
+            ? fhirConfig.multiTenancyConfig?.tenantIdClaimValuePrefix + tenantId
             : tenantId;
         if (tenantIdFromCustomClaimAsArray.includes(tenantAccessTokenClaimValueToTest)) {
             return true;
