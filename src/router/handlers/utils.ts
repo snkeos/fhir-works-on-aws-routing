@@ -6,8 +6,6 @@
 
 import { createHash } from 'crypto';
 
-
-
 export const hash = (o: any): string => createHash('sha256').update(JSON.stringify(o)).digest('hex');
 
 export function isLambdaEnv() {

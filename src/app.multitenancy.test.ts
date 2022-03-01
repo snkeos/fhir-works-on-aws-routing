@@ -1,15 +1,11 @@
 import express from 'express';
+import { clone } from 'fhir-works-on-aws-interface';
 import { generateServerlessRouter } from './app';
 import r4FhirConfigGenericMultiTenancy from '../sampleData/r4FhirConfigGenericMultiTenancy';
 import ElasticSearchService from './router/__mocks__/elasticSearchService';
-import DynamoDbDataService from './router/__mocks__/dynamoDbDataService';
-import { setExpectedCreateResourceId } from './router/__mocks__/dynamoDbDataService';
+import DynamoDbDataService, { setExpectedCreateResourceId } from './router/__mocks__/dynamoDbDataService';
 import AuthorizationService from './router/__mocks__/authorizationService';
 import validPatient from '../sampleData/validV4Patient.json';
-import {
-    clone,
-} from 'fhir-works-on-aws-interface';
-import querystring from 'querystring';
 
 // eslint-disable-next-line import/no-unresolved
 const resourceType: string = 'Patient';
@@ -45,7 +41,8 @@ const postResource = async (
     expectedStatusCode: number,
 ) => {
     const requestWithSupertest = request(app);
-    const res = await requestWithSupertest.post(`/tenant/${tenantId}/${resourceTypeToUse}`)
+    const res = await requestWithSupertest
+        .post(`/tenant/${tenantId}/${resourceTypeToUse}`)
         .set('Content-Type', 'application/json')
         .send(JSON.stringify(body));
 
@@ -64,7 +61,8 @@ const getResource = async (
     textMsg?: string,
 ) => {
     const requestWithSupertest = request(app);
-    const res = await requestWithSupertest.get(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
+    const res = await requestWithSupertest
+        .get(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
         .set('Content-Type', 'application/json')
         .send();
 
@@ -90,7 +88,8 @@ const typeSearch = async (
     textMsg?: string,
 ) => {
     const requestWithSupertest = request(app);
-    const res = await requestWithSupertest.get(`/tenant/${tenantId}/${resourceTypeToUse}?${encodeURIComponent(queryparams)}`)
+    const res = await requestWithSupertest
+        .get(`/tenant/${tenantId}/${resourceTypeToUse}?${encodeURIComponent(queryparams)}`)
         .set('Content-Type', 'application/json')
         .send();
 
@@ -120,7 +119,8 @@ const putResource = async (
     const overrideResource = clone(body);
     overrideResource.id = id;
     const requestWithSupertest = request(app);
-    const res = await requestWithSupertest.put(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
+    const res = await requestWithSupertest
+        .put(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
         .set('Content-Type', 'application/json')
         .send(JSON.stringify(overrideResource));
 
@@ -141,7 +141,8 @@ const patchResource = async (
     const patchedResource = clone(body);
     patchedResource.id = id;
     const requestWithSupertest = request(app);
-    const res = await requestWithSupertest.patch(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
+    const res = await requestWithSupertest
+        .patch(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
         .set('Content-Type', 'application/json')
         .send(JSON.stringify(patchedResource));
 
@@ -158,7 +159,8 @@ const deleteResource = async (
     expectedStatusCode: number,
 ) => {
     const requestWithSupertest = request(app);
-    const res = await requestWithSupertest.delete(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
+    const res = await requestWithSupertest
+        .delete(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
         .set('Content-Type', 'application/json')
         .send();
 
@@ -252,7 +254,8 @@ describe('Multi tenancy: generateServerlessRouter metadata access', () => {
 
     test(`Get: /${specificTenantId}/metadata should return 200.`, async () => {
         const requestWithSupertest = request(app);
-        const res = await requestWithSupertest.get(`/tenant/${specificTenantId}/metadata`)
+        const res = await requestWithSupertest
+            .get(`/tenant/${specificTenantId}/metadata`)
             .set('Content-Type', 'application/json')
             .send();
 
@@ -261,7 +264,8 @@ describe('Multi tenancy: generateServerlessRouter metadata access', () => {
 
     test(`Get: /${defaultTenantId}/metadata should return 200.`, async () => {
         const requestWithSupertest = request(app);
-        const res = await requestWithSupertest.get(`/tenant/${defaultTenantId}/metadata`)
+        const res = await requestWithSupertest
+            .get(`/tenant/${defaultTenantId}/metadata`)
             .set('Content-Type', 'application/json')
             .send();
 
@@ -276,7 +280,8 @@ describe('Multi tenancy: generateServerlessRouter typesearch', () => {
         persistence: DynamoDbDataService,
     });
     const app = generateServerlessRouter(fhirConfig, ['Patient']);
-    const queryParam = 'identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family=Simpson&given=Lisa';
+    const queryParam =
+        'identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family=Simpson&given=Lisa';
 
     test(`Get: search /${specificTenantId}/${resourceType}?${queryParam} should return 200.`, async () => {
         AuthorizationService.assignTokenDecoded(provideDecodedToken(['profile', 'openid']));

@@ -132,7 +132,13 @@ export default class ResourceHandler implements CrudHandlerInterface {
             searchFilters,
             tenantId,
         });
-        const bundle = BundleGenerator.generateBundle(serverUrl, queryParams, historyResponse.result, 'history', resourceType);
+        const bundle = BundleGenerator.generateBundle(
+            serverUrl,
+            queryParams,
+            historyResponse.result,
+            'history',
+            resourceType,
+        );
         closeXRaySubSegment(handlerSubSegment);
         return bundle;
     }

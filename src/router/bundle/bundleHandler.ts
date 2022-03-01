@@ -93,7 +93,7 @@ export default class BundleHandler implements BundleHandlerInterface {
             const bundleResourceOperations = resourceTypeToOperations[bundleResourceType];
             // 'Generic resource' includes bundle resourceType and Operation
             if (this.supportedGenericResources.includes(bundleResourceType)) {
-                const operationsInBundleThatServerDoesNotSupport = bundleResourceOperations.filter(operation => {
+                const operationsInBundleThatServerDoesNotSupport = bundleResourceOperations.filter((operation) => {
                     return !this.genericResource?.operations.includes(operation);
                 });
                 if (operationsInBundleThatServerDoesNotSupport.length > 0) {

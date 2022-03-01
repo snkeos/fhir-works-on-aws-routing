@@ -131,4 +131,3 @@ const DynamoDbDataService: Persistence = class {
     }
 };
 export default DynamoDbDataService;
-

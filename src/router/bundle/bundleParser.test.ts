@@ -327,8 +327,7 @@ describe('parseResource', () => {
                     },
                     request: {
                         method: 'PUT',
-                        url:
-                            'Patient?identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family:exact=Simpson&given:exact=Lisa',
+                        url: 'Patient?identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family:exact=Simpson&given:exact=Lisa',
                     },
                 },
             ],
@@ -556,7 +555,9 @@ describe('parseResource', () => {
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
-                expect((e as any).message).toContain('Cannot process bundle: Conditional update: Too many resources found for');
+                expect((e as any).message).toContain(
+                    'Cannot process bundle: Conditional update: Too many resources found for',
+                );
             }
         });
     });
