@@ -17,7 +17,7 @@ import CrudHandlerInterface from './CrudHandlerInterface';
 import OperationsGenerator from '../operationsGenerator';
 import { validateResource } from '../validation/validationUtilities';
 import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
-import { hash, openNewXRaySubSegment, closeXRaySubSegment } from './utils';
+import { openNewXRaySubSegment, closeXRaySubSegment } from '../../utils/xrayUtils';
 
 export default class ResourceHandler implements CrudHandlerInterface {
     private validators: Validator[];

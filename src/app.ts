@@ -28,32 +28,9 @@ import { initializeOperationRegistry } from './operationDefinitions';
 import { setServerUrlMiddleware } from './router/middlewares/setServerUrl';
 import { setTenantIdMiddleware } from './router/middlewares/setTenantId';
 import { setContentTypeMiddleware } from './router/middlewares/setContentType';
-import { isLambdaEnv } from './router/handlers/utils';
-
-let XRayExpress: any;
-
-if (isLambdaEnv()) {
-    const AWSXRay = require('aws-xray-sdk');
-    // noinspection JSCheckFunctionSignatures
-    AWSXRay.captureHTTPsGlobal(require('http'));
-    // noinspection JSCheckFunctionSignatures
-    AWSXRay.captureHTTPsGlobal(require('https'));
-    XRayExpress = AWSXRay.express;
-}
+import { initXRayExpress, openXRaySegment, closeXRaySegment } from './utils/xrayUtils';
 
 const configVersionSupported: ConfigVersion = 1;
-
-const openXRaySegment = (app: Express, name: string): any => {
-    if (isLambdaEnv()) {
-        app.use(XRayExpress.openSegment(name));
-    }
-};
-
-const closeXRaySegment = (app: Express): any => {
-    if (XRayExpress) {
-        app.use(XRayExpress.closeSegment());
-    }
-};
 
 function prepareRequestContext(req: express.Request): RequestContext {
     const requestContext: RequestContext = {
@@ -71,6 +48,8 @@ function prepareRequestContext(req: express.Request): RequestContext {
     }
     return requestContext;
 }
+
+const XRayExpress = initXRayExpress();
 
 export function generateServerlessRouter(
     fhirConfig: FhirConfig,
@@ -90,7 +69,7 @@ export function generateServerlessRouter(
     const app = express();
     app.disable('x-powered-by');
 
-    openXRaySegment(app, 'AWS FHIRServer Server API');
+    openXRaySegment(app, XRayExpress, 'AWS FHIRServer Server API');
 
     const mainRouter = express.Router({ mergeParams: true });
 
@@ -251,6 +230,6 @@ export function generateServerlessRouter(
     } else {
         app.use('/', mainRouter);
     }
-    closeXRaySegment(app);
+    closeXRaySegment(app, XRayExpress);
     return app;
 }

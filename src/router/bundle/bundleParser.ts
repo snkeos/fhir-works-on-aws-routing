@@ -412,7 +412,7 @@ export default class BundleParser {
     }
 
     /**
-     * Get the resource id specified in the entry
+     * Get the resource id and operation specified in the entry
      * @param entry - Entry to parse
      * @param operation - Operation specified in the entry
      * @param resourceTypeSearch - The search helper object for conditional update
