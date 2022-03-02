@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 import { Validator } from 'fhir-works-on-aws-interface';
-import { openNewXRaySubSegment, closeXRaySubSegment } from '../handlers/utils';
+import { openNewXRaySubSegment, closeXRaySubSegment } from '../../utils/xrayUtils';
 
 export async function validateResource(validators: Validator[], resource: any): Promise<void> {
     const handlerSubSegment = openNewXRaySubSegment(`validateResource`);
