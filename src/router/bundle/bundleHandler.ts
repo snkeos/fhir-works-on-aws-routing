@@ -121,7 +121,7 @@ export default class BundleHandler implements BundleHandlerInterface {
     ) {
         const startTime = new Date();
 
-        await validateResource(this.validators, bundleRequestJson);
+        await validateResource(this.validators, bundleRequestJson, { tenantId });
 
         let requests: BatchReadWriteRequest[];
         try {

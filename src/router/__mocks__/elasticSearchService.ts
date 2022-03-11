@@ -38,8 +38,11 @@ class ElasticSearchTestService implements Search {
         const dummy: SearchCapabilityStatement = {};
         return dummy;
     }
+
+    static validateSubscriptionSearchCriteria(searchCriteria: string): void {
+        console.log(searchCriteria);
+    }
 }
 
 const ElasticSearchService: ElasticSearchTestService = new ElasticSearchTestService();
-
 export default ElasticSearchService;
