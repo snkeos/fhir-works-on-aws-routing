@@ -22,6 +22,7 @@ import { MAX_BUNDLE_ENTRIES } from '../../constants';
 import BundleHandlerInterface from './bundleHandlerInterface';
 import BundleGenerator from './bundleGenerator';
 import BundleParser from './bundleParser';
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 import { validateResource } from '../validation/validationUtilities';
 
 export default class BundleHandler implements BundleHandlerInterface {
@@ -38,6 +39,8 @@ export default class BundleHandler implements BundleHandlerInterface {
     private resources?: Resources;
 
     private supportedGenericResources: string[];
+
+    private resourceTypeSearch?: ResourceTypeSearch;
 
     constructor(
         bundleService: Bundle,
@@ -56,6 +59,10 @@ export default class BundleHandler implements BundleHandlerInterface {
         this.resources = resources;
 
         this.validators = validators;
+
+        if (this.genericResource) {
+            this.resourceTypeSearch = new ResourceTypeSearch(authService, this.genericResource.typeSearch);
+        }
     }
 
     /* eslint-disable  @typescript-eslint/no-unused-vars,prettier/prettier */
@@ -128,11 +135,15 @@ export default class BundleHandler implements BundleHandlerInterface {
                 message = message.substring(0, message.length - 1);
                 throw new Error(`Server does not support these resource and operations: {${message}}`);
             }
-            if (this.genericResource) {
+            if (this.genericResource && this.resourceTypeSearch) {
                 requests = await BundleParser.parseResource(
                     bundleRequestJson,
                     this.genericResource.persistence,
+                    this.resourceTypeSearch,
                     serverUrl,
+                    userIdentity,
+                    requestContext,
+                    tenantId,
                 );
             } else {
                 throw new Error('Cannot process bundle');

@@ -3,12 +3,30 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-import { BatchReadWriteRequest, clone, ResourceNotFoundError } from 'fhir-works-on-aws-interface';
+import { BatchReadWriteRequest, clone, ResourceNotFoundError, RequestContext } from 'fhir-works-on-aws-interface';
 import { ReadResourceRequest } from 'fhir-works-on-aws-interface/lib/persistence';
 import DynamoDbDataService from '../__mocks__/dynamoDbDataService';
+import AuthorizationService from '../__mocks__/authorizationService';
+import ElasticSearchService, { setExpectedSearchSet } from '../__mocks__/elasticSearchService';
 import BundleParser from './bundleParser';
 import { resourceTypeWithUuidRegExp, uuidRegExp } from '../../regExpressions';
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 
+const practitionerDecoded = {
+    sub: 'fake',
+    'cognito:groups': ['practitioner'],
+    name: 'not real',
+    iat: 1516239022,
+};
+
+const dummyRequestContext: RequestContext = {
+    url: 'https://fhir.acme.com/patient',
+    contextInfo: {},
+    headers: {},
+    hostname: 'fhir.acme.com',
+    verb: 'GET',
+};
+const resourceTypeSearch = new ResourceTypeSearch(AuthorizationService, ElasticSearchService);
 describe('parseResource', () => {
     const serverUrl = 'https://API_URL.com';
     beforeEach(() => {
@@ -46,7 +64,14 @@ describe('parseResource', () => {
             };
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -72,7 +97,14 @@ describe('parseResource', () => {
             bundleRequestJson.entry[0].resource = bundleRequestJson;
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -97,7 +129,14 @@ describe('parseResource', () => {
             };
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -121,7 +160,14 @@ describe('parseResource', () => {
             };
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -145,7 +191,14 @@ describe('parseResource', () => {
             };
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -169,7 +222,14 @@ describe('parseResource', () => {
             };
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -193,7 +253,14 @@ describe('parseResource', () => {
             };
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -217,11 +284,280 @@ describe('parseResource', () => {
             };
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
                 expect((e as any).message).toEqual('We currently do not support HISTORY entries in the Bundle');
+            }
+        });
+    });
+
+    describe('Conditional update support', () => {
+        const conditionalUpdatebundleRequestJson = {
+            resourceType: 'Bundle',
+            type: 'transaction',
+            entry: [
+                {
+                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                    resource: {
+                        id: '8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                        resourceType: 'Patient',
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    request: {
+                        method: 'PUT',
+                        url: 'Patient?identifier=https://github.com/synthetichealth/synthea|e531c09f-6887-6aba-af17-cbc521900b87&birthdate=1992-08-02&family=Simpson&given:exact=Lisa',
+                    },
+                },
+            ],
+        };
+
+        test('Conditional Update: A patient is not available -> create', async () => {
+            // BUILD
+            const consoleOutput: string[] = [];
+            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
+            console.log = mockedLog;
+
+            const expectedRequests: BatchReadWriteRequest[] = [
+                {
+                    operation: 'create',
+                    resource: {
+                        id: expect.stringMatching(uuidRegExp),
+                        resourceType: 'Patient',
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                    resourceType: 'Patient',
+                    id: expect.stringMatching(uuidRegExp),
+                },
+            ];
+
+            // OPERATE
+            const actualRequests = await BundleParser.parseResource(
+                conditionalUpdatebundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
+
+            // CHECK
+            expect(actualRequests).toEqual(expectedRequests);
+        });
+
+        test('Conditional Update: A patient is available -> update', async () => {
+            // BUILD
+            const consoleOutput: string[] = [];
+            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
+            console.log = mockedLog;
+            setExpectedSearchSet([
+                {
+                    fullUrl: 'http://localhost:4080/Patient/cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                    resource: {
+                        resourceType: 'Patient',
+                        id: 'cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                        meta: {
+                            versionId: 'dfcc8fb7-ceae-44d2-8a3b-70903f3b89bc',
+                            lastUpdated: '2021-08-18T12:49:12.757+00:00',
+                            source: '#qLEZvGrdkonQ2ihA',
+                        },
+                        text: {
+                            status: 'generated',
+                            div: '',
+                        },
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                use: 'official',
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                                prefix: ['Ms.'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    search: {
+                        mode: 'match',
+                    },
+                },
+            ]);
+            const expectedRequests: BatchReadWriteRequest[] = [
+                {
+                    operation: 'update',
+                    resource: {
+                        id: expect.stringMatching(uuidRegExp),
+                        resourceType: 'Patient',
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    fullUrl: 'urn:uuid:8cafa46d-08b4-4ee4-b51b-803e20ae8126',
+                    resourceType: 'Patient',
+                    id: expect.stringMatching(uuidRegExp),
+                },
+            ];
+
+            // OPERATE
+            const actualRequests = await BundleParser.parseResource(
+                conditionalUpdatebundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
+
+            // CHECK
+            expect(actualRequests).toEqual(expectedRequests);
+        });
+
+        test('Conditional Update: Multiple patients are available -> error', async () => {
+            // BUILD
+            const consoleOutput: string[] = [];
+            const mockedLog = (message: string, param: string) => consoleOutput.push(`${message} ${param}`);
+            console.log = mockedLog;
+            setExpectedSearchSet([
+                {
+                    fullUrl: 'http://localhost:4080/Patient/cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                    resource: {
+                        resourceType: 'Patient',
+                        id: 'cc8b9b47-f2a2-4779-b45a-6b18e6310aab',
+                        meta: {
+                            versionId: 'dfcc8fb7-ceae-44d2-8a3b-70903f3b89bc',
+                            lastUpdated: '2021-08-18T12:49:12.757+00:00',
+                            source: '#qLEZvGrdkonQ2ihA',
+                        },
+                        text: {
+                            status: 'generated',
+                            div: '',
+                        },
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                use: 'official',
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                                prefix: ['Ms.'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    search: {
+                        mode: 'match',
+                    },
+                },
+                {
+                    fullUrl: 'http://localhost:4080/Patient/12456adefd-22224ddad-3224ab3fd',
+                    resource: {
+                        resourceType: 'Patient',
+                        id: '12456adefd-22224ddad-3224ab3fd',
+                        meta: {
+                            versionId: 'dfcc8fb7-ceae-44d2-8a3b-70903f3b89bc',
+                            lastUpdated: '2021-08-18T12:49:12.757+00:00',
+                            source: '#qLEZvGrdkonQ2ihA',
+                        },
+                        text: {
+                            status: 'generated',
+                            div: '',
+                        },
+                        identifier: [
+                            {
+                                system: 'https://github.com/synthetichealth/synthea',
+                                value: 'e531c09f-6887-6aba-af17-cbc521900b87',
+                            },
+                        ],
+                        name: [
+                            {
+                                use: 'official',
+                                family: 'Simpson',
+                                given: ['Lisa'],
+                                prefix: ['Ms.'],
+                            },
+                        ],
+                        gender: 'female',
+                        birthDate: '1992-08-02',
+                    },
+                    search: {
+                        mode: 'match',
+                    },
+                },
+            ]);
+
+            try {
+                /* eslint-disable @typescript-eslint/no-unused-vars */
+                // OPERATE
+                const actualRequests = await BundleParser.parseResource(
+                    conditionalUpdatebundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
+            } catch (e) {
+                // CHECK
+                expect((e as any).name).toEqual('Error');
+                expect((e as any).message).toContain(
+                    'Cannot process bundle: Conditional update: Too many resources found for',
+                );
             }
         });
     });
@@ -416,7 +752,14 @@ describe('parseResource', () => {
             };
 
             // OPERATE
-            const actualRequests = await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+            const actualRequests = await BundleParser.parseResource(
+                bundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
 
             // CHECK
             const expectedRequests: BatchReadWriteRequest[] = [
@@ -762,7 +1105,14 @@ describe('parseResource', () => {
             ];
 
             // OPERATE
-            const actualRequests = await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+            const actualRequests = await BundleParser.parseResource(
+                bundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
 
             // CHECK
             expect(actualRequests).toEqual(expectedRequests);
@@ -809,7 +1159,10 @@ describe('parseResource', () => {
             const batchReadWriteRequest = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
+                resourceTypeSearch,
                 serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
             );
             expect(batchReadWriteRequest).toHaveLength(1);
             expect(batchReadWriteRequest[0]).toMatchInlineSnapshot(
@@ -888,7 +1241,10 @@ describe('parseResource', () => {
             const batchReadWriteRequest = await BundleParser.parseResource(
                 bundleRequestJson,
                 DynamoDbDataService,
+                resourceTypeSearch,
                 serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
             );
             expect(batchReadWriteRequest).toHaveLength(1);
             expect(batchReadWriteRequest[0]).toMatchInlineSnapshot(
@@ -1031,8 +1387,14 @@ describe('parseResource', () => {
                 },
             ];
 
-            const actualRequests = await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
-
+            const actualRequests = await BundleParser.parseResource(
+                bundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
             expect(actualRequests).toEqual(expectedRequests);
         });
 
@@ -1072,7 +1434,14 @@ describe('parseResource', () => {
                         throw new ResourceNotFoundError('Patient', '1234');
                     }
                 });
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 expect((e as any).name).toEqual('Error');
                 expect((e as any).message).toEqual(
@@ -1138,7 +1507,14 @@ describe('parseResource', () => {
                     },
                 ],
             };
-            const actualRequests = await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+            const actualRequests = await BundleParser.parseResource(
+                bundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
 
             const expectedRequests: BatchReadWriteRequest[] = [
                 {
@@ -1229,7 +1605,14 @@ describe('parseResource', () => {
                 ],
             };
             try {
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 expect((e as any).name).toEqual('Error');
                 expect((e as any).message).toEqual(
@@ -1294,7 +1677,14 @@ describe('parseResource', () => {
             };
 
             // OPERATE
-            const actualRequests = await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+            const actualRequests = await BundleParser.parseResource(
+                bundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
 
             // CHECK
             const expectedRequests: BatchReadWriteRequest[] = [
@@ -1401,7 +1791,14 @@ describe('parseResource', () => {
             };
 
             // OPERATE
-            const actualRequests = await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+            const actualRequests = await BundleParser.parseResource(
+                bundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
 
             // CHECK
             const expectedRequests: BatchReadWriteRequest[] = [
@@ -1481,7 +1878,14 @@ describe('parseResource', () => {
 
             // OPERATE
             try {
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext,
+                );
             } catch (e) {
                 expect((e as any).name).toEqual('Error');
                 expect((e as any).message).toEqual(
@@ -1528,7 +1932,14 @@ describe('parseResource', () => {
             };
 
             // OPERATE
-            const actualRequests = await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+            const actualRequests = await BundleParser.parseResource(
+                bundleRequestJson,
+                DynamoDbDataService,
+                resourceTypeSearch,
+                serverUrl,
+                practitionerDecoded,
+                dummyRequestContext,
+            );
 
             // CHECK
             const expectedRequest = clone(molecSeqEntry);

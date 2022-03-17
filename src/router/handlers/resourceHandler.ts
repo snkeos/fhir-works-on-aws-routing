@@ -16,14 +16,14 @@ import BundleGenerator from '../bundle/bundleGenerator';
 import CrudHandlerInterface from './CrudHandlerInterface';
 import OperationsGenerator from '../operationsGenerator';
 import { validateResource } from '../validation/validationUtilities';
-import { hash } from './utils';
+import ResourceTypeSearch from '../../utils/ResourceTypeSearch';
 
 export default class ResourceHandler implements CrudHandlerInterface {
     private validators: Validator[];
 
     private dataService: Persistence;
 
-    private searchService: Search;
+    private searchService: ResourceTypeSearch;
 
     private historyService: History;
 
@@ -39,7 +39,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
     ) {
         this.validators = validators;
         this.dataService = dataService;
-        this.searchService = searchService;
+        this.searchService = new ResourceTypeSearch(authService, searchService);
         this.historyService = historyService;
         this.authService = authService;
     }
@@ -73,33 +73,18 @@ export default class ResourceHandler implements CrudHandlerInterface {
         serverUrl: string,
         tenantId?: string,
     ) {
-        const allowedResourceTypes = await this.authService.getAllowedResourceTypesForOperation({
-            operation: 'search-type',
-            userIdentity,
-            requestContext,
-        });
-
-        const searchFilters = await this.authService.getSearchFilterBasedOnIdentity({
-            userIdentity,
-            requestContext,
-            operation: 'search-type',
-            resourceType,
-            fhirServiceBaseUrl: serverUrl,
-        });
-
-        const searchResponse = await this.searchService.typeSearch({
+        const searchResponse = await this.searchService.searchResources(
             resourceType,
             queryParams,
-            baseUrl: serverUrl,
-            allowedResourceTypes,
-            searchFilters,
+            userIdentity,
+            requestContext,
+            serverUrl,
             tenantId,
-            sessionId: hash(userIdentity),
-        });
+        );
         const bundle = BundleGenerator.generateBundle(
             serverUrl,
             queryParams,
-            searchResponse.result,
+            searchResponse,
             'searchset',
             resourceType,
         );
