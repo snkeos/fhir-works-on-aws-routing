@@ -112,6 +112,9 @@ export function generateServerlessRouter(
     // AuthZ
     mainRouter.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         try {
+            if (req.method === 'OPTIONS') {
+                next();
+            }
             const requestInformation =
                 operationRegistry.getOperation(req.method, req.path)?.requestInformation ??
                 getRequestInformation(req.method, req.path);
