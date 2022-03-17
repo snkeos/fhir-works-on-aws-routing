@@ -28,6 +28,7 @@ import { initializeOperationRegistry } from './operationDefinitions';
 import { setServerUrlMiddleware } from './router/middlewares/setServerUrl';
 import { setTenantIdMiddleware } from './router/middlewares/setTenantId';
 import { setContentTypeMiddleware } from './router/middlewares/setContentType';
+import { initXRayExpress, openXRaySegment, closeXRaySegment } from './utils/xrayUtils';
 
 const configVersionSupported: ConfigVersion = 1;
 
@@ -48,6 +49,8 @@ function prepareRequestContext(req: express.Request): RequestContext {
     return requestContext;
 }
 
+const XRayExpress = initXRayExpress();
+
 export function generateServerlessRouter(
     fhirConfig: FhirConfig,
     supportedGenericResources: string[],
@@ -65,6 +68,8 @@ export function generateServerlessRouter(
 
     const app = express();
     app.disable('x-powered-by');
+
+    openXRaySegment(app, XRayExpress, 'AWS FHIRServer Server API');
 
     const mainRouter = express.Router({ mergeParams: true });
 
@@ -221,6 +226,6 @@ export function generateServerlessRouter(
     } else {
         app.use('/', mainRouter);
     }
-
+    closeXRaySegment(app, XRayExpress);
     return app;
 }
