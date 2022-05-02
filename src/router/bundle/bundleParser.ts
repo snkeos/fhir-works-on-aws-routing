@@ -79,7 +79,13 @@ export default class BundleParser {
             }
             return request;
         });
-        return this.updateReferenceRequestsIfNecessary(requests, dataService, serverUrl);
+
+        return this.updateReferenceRequestsIfNecessary(
+            requests,
+            dataService,
+            serverUrl,
+            bundleRequestJson.type === 'batch',
+        );
     }
 
     /**
@@ -145,6 +151,7 @@ export default class BundleParser {
         requests: BatchReadWriteRequest[],
         dataService: Persistence,
         serverUrl: string,
+        isBatchRequest = false,
     ): Promise<BatchReadWriteRequest[]> {
         const fullUrlToRequest: Record<string, BatchReadWriteRequest> = {};
         const idToRequestWithRef: Record<string, BatchReadWriteRequest> = {};
@@ -186,6 +193,7 @@ export default class BundleParser {
             allRequests,
             serverUrl,
             dataService,
+            isBatchRequest,
         );
     }
 
@@ -206,6 +214,7 @@ export default class BundleParser {
         allRequests: BatchReadWriteRequest[],
         serverUrl: string,
         dataService: Persistence,
+        isBatchRequest = false,
     ): Promise<BatchReadWriteRequest[]> {
         for (let i = 0; i < Object.values(idToRequestWithRef).length; i += 1) {
             const requestWithRef = Object.values(idToRequestWithRef)[i];
@@ -221,6 +230,10 @@ export default class BundleParser {
                     // If reference refers to another resource in the bundle, change the id of the reference to match the
                     // id of the resource.
                     if (reference.referenceFullUrl in fullUrlToRequest) {
+                        if (isBatchRequest) {
+                            // Batch requests are non-conformant if referencing another resource within the bundle
+                            throw new Error(`Batch does not allow references to resources within the bundle`);
+                        }
                         const reqBeingReferenced: BatchReadWriteRequest = fullUrlToRequest[reference.referenceFullUrl];
                         const { id } = reqBeingReferenced;
 
