@@ -43,7 +43,7 @@
     "http-errors": "^1.8.0",
     "lodash": "^4.17.15",
     "mime-types": "^2.1.26",
-    "serverless-http": "^2.3.1",
+    "serverless-http": "^3.2.0",
     "uuid": "^3.4.0"
   },
   "devDependencies": {
