@@ -47,7 +47,7 @@ export default class ResourceHandler implements CrudHandlerInterface {
 
     async create(resourceType: string, resource: any, tenantId?: string) {
         const handlerSubSegment = openNewXRaySubSegment(`create`);
-        await validateResource(this.validators, resource, { tenantId, typeOperation: 'create' });
+        await validateResource(this.validators, resourceType, resource, { tenantId, typeOperation: 'create' });
 
         const createResponse = await this.dataService.createResource({ resourceType, resource, tenantId });
         closeXRaySubSegment(handlerSubSegment);

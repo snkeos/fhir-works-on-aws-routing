@@ -1,5 +1,7 @@
 # fhir-works-on-aws-routing
 
+# This GitHub repository has been migrated. You can now find FHIR Works on AWS at https://github.com/aws-solutions/fhir-works-on-aws.
+
 ## Purpose
 
 Please visit [fhir-works-on-aws-deployment](https://github.com/awslabs/fhir-works-on-aws-deployment) for overall vision of the project and for more context.
@@ -11,6 +13,7 @@ This package is an implementation of the routing of the [FHIR Works interface](h
 This package assumes certain infrastructure:
 
 - API Gateway - We expect all the routing to invoke the FHIR Works Lambda
+  - [Best Practices](https://github.com/awslabs/fhir-works-on-aws-deployment/tree/smart-mainline#best-practices)
 - Lambda - We expect the input to be entering our function in a certain way
 
 ## Usage

@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.6.2](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.6.1...v6.6.2) (2023-01-24)
+
+
+### Bug Fixes
+
+* add optional input validation ([#193](https://github.com/awslabs/fhir-works-on-aws-routing/issues/193)) ([e8d9c8d](https://github.com/awslabs/fhir-works-on-aws-routing/commit/e8d9c8d1fad0b653869773cf88fa501c586f3004))
+
+### [6.6.1](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.6.0...v6.6.1) (2022-09-08)
+
+
+### Bug Fixes
+
+* Throw error if url and POSTed resourceType do not match ([#172](https://github.com/awslabs/fhir-works-on-aws-routing/issues/172)) ([b1bd6e4](https://github.com/awslabs/fhir-works-on-aws-routing/commit/b1bd6e4b6772ff82a2450ce8bf073c10d2201bbd))
+
+## [6.6.0](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.5.1...v6.6.0) (2022-08-21)
+
+
+### Features
+
+* Issue 674 support for up to 100 entries in a FHIR transaction ([#170](https://github.com/awslabs/fhir-works-on-aws-routing/issues/170)) ([6048e17](https://github.com/awslabs/fhir-works-on-aws-routing/commit/6048e17b69ed56b6aea3a74ce96553294763f5e8))
+
+### [6.5.1](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.5.0...v6.5.1) (2022-06-06)
+
+
+### Bug Fixes
+
+* Use accept header to determine return content type([#168](https://github.com/awslabs/fhir-works-on-aws-routing/issues/168)) ([c543c02](https://github.com/awslabs/fhir-works-on-aws-routing/commit/c543c0292f9f6c9bb82cb8e39d6fa24fee2c8824))
+
 ## [6.5.0](https://github.com/awslabs/fhir-works-on-aws-routing/compare/v6.4.1...v6.5.0) (2022-04-06)
 
 
