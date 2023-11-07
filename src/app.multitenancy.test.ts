@@ -48,7 +48,7 @@ const postResource = async (
         .send(JSON.stringify(body));
 
     expect(res.statusCode).toEqual(expectedStatusCode);
-    expect(res.headers['content-type']).toEqual('application/json; charset=utf-8');
+    expect(res.headers['content-type']).toEqual('application/fhir+json; charset=utf-8');
     expect(res.body.id).toEqual(expectedResourceId);
     return res;
 };
@@ -67,7 +67,7 @@ const postBundle = async (
         .send(JSON.stringify(body));
 
     expect(res.statusCode).toEqual(expectedStatusCode);
-    expect(res.headers['content-type']).toEqual('application/json; charset=utf-8');
+    expect(res.headers['content-type']).toEqual('application/fhir+json; charset=utf-8');
     expect(res.body.link[0].url).toEqual(expect.stringContaining(`/tenant/${tenantId}`));
     expect(res.body.entry.length).toEqual(bundleEntryResponses.length);
     expect(res.body.entry[0].response.location).toEqual(
@@ -150,11 +150,11 @@ const putResource = async (
     const requestWithSupertest = request(app);
     const res = await requestWithSupertest
         .put(`/tenant/${tenantId}/${resourceTypeToUse}/${id}`)
-        .set('Content-Type', 'application/json')
+        .set('Content-Type', 'application/fhir+json')
         .send(JSON.stringify(overrideResource));
 
     expect(res.statusCode).toEqual(expectedStatusCode);
-    expect(res.headers['content-type']).toEqual('application/json; charset=utf-8');
+    expect(res.headers['content-type']).toEqual('application/fhir+json; charset=utf-8');
     expect(res.body.id).toEqual(id);
     return res;
 };
@@ -176,7 +176,7 @@ const patchResource = async (
         .send(JSON.stringify(patchedResource));
 
     expect(res.statusCode).toEqual(expectedStatusCode);
-    expect(res.headers['content-type']).toEqual('application/json; charset=utf-8');
+    expect(res.headers['content-type']).toEqual('application/fhir+json; charset=utf-8');
     expect(res.body.id).toEqual(id);
     return res;
 };

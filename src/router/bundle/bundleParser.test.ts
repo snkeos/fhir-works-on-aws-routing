@@ -136,7 +136,13 @@ describe('parseResource', () => {
 
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext
+                );
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
@@ -169,7 +175,13 @@ describe('parseResource', () => {
 
             try {
                 // OPERATE
-                await BundleParser.parseResource(bundleRequestJson, DynamoDbDataService, serverUrl);
+                await BundleParser.parseResource(
+                    bundleRequestJson,
+                    DynamoDbDataService,
+                    resourceTypeSearch,
+                    serverUrl,
+                    practitionerDecoded,
+                    dummyRequestContext);
             } catch (e) {
                 // CHECK
                 expect((e as any).name).toEqual('Error');
