@@ -94,7 +94,7 @@ describe('captureResourceIdRegExp', () => {
         const resourceString = `Patient/12345678`;
         const actualMatch = resourceString.match(captureResourceIdRegExp);
 
-        const expectedMatch = ['Patient/12345678', 'Patient'];
+        const expectedMatch = ['Patient/12345678', '12345678'];
 
         for (let i = 0; i < expectedMatch.length; i += 1) {
             // @ts-ignore
