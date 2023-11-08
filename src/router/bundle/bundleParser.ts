@@ -449,7 +449,7 @@ export default class BundleParser {
         if (operation === 'create') {
             id = uuidv4();
         } else if (operation === 'update' || operation === 'patch') {
-            const { url } = entry.request;
+            const { url } = entry.request.url;
             const pathElements = url.split('?');
 
             // check for conditional update
@@ -483,7 +483,7 @@ export default class BundleParser {
             operation === 'history-instance' ||
             operation === 'delete'
         ) {
-            const { url } = entry.request;
+            const { url } = entry.request.url;
             const match = url.match(captureResourceIdRegExp);
             if (!match) {
                 throw new Error(`Bundle entry does not contain resourceId: ${url}`);
@@ -513,7 +513,7 @@ export default class BundleParser {
             operation === 'history-instance' ||
             operation === 'delete'
         ) {
-            const { url } = entry.request;
+            const { url } = entry.request.url;
             const match = url.match(captureResourceTypeRegExp);
             if (!match) {
                 throw new Error(`Bundle entry does not contain valid url format: ${url}`);
