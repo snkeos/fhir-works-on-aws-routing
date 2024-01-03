@@ -55,7 +55,7 @@
     "@types/lodash": "^4.14.157",
     "@types/mime-types": "^2.1.0",
     "@types/mock-req-res": "^1.1.2",
-    "@types/node": "^14",
+    "@types/node": "^18",
     "@types/uuid": "^3.4.7",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
@@ -102,6 +102,6 @@
     "url": "git://github.com/awslabs/fhir-works-on-aws-routing.git"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   }
 }
